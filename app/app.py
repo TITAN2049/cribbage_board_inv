@@ -7,15 +7,35 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
 app.secret_key = 'cribbage_board_collection_secret_key_2024'
-# Get the directory where this script is located
+
+# Get the base directory (one level up from app directory)
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data_dir = os.path.join(base_dir, "data")
+uploads_dir = os.path.join(data_dir, "uploads")
+
+# Ensure data directories exist
+os.makedirs(data_dir, exist_ok=True)
+os.makedirs(uploads_dir, exist_ok=True)
+
+# Configure upload folder to use data directory
+app.config["UPLOAD_FOLDER"] = uploads_dir
+
+# Also maintain the old static/uploads for backward compatibility
 app_dir = os.path.dirname(os.path.abspath(__file__))
-app.config["UPLOAD_FOLDER"] = os.path.join(app_dir, "static", "uploads")
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+old_uploads_dir = os.path.join(app_dir, "static", "uploads")
+os.makedirs(old_uploads_dir, exist_ok=True)
 
 def get_db():
-    # Get the directory where this script is located
-    app_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(app_dir, "database.db")
+    # Use database in data directory (safe from code updates)
+    db_path = os.path.join(data_dir, "database.db")
+    
+    # If database doesn't exist in data directory, check old location
+    if not os.path.exists(db_path):
+        old_db_path = os.path.join(app_dir, "database.db")
+        if os.path.exists(old_db_path):
+            print(f"⚠️  Database found in old location, consider running migrate_data.py")
+            db_path = old_db_path
+    
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
@@ -37,12 +57,21 @@ def generate_unique_filename(original_filename, prefix=""):
     return f"{prefix}_{timestamp}_{unique_id}_{name}{ext}"
 
 def safe_delete_file(filename):
-    """Safely delete a file if it exists"""
+    """Safely delete a file if it exists - checks both data and app directories"""
     if filename:
         try:
-            file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            # Try data directory first (new location)
+            file_path = os.path.join(uploads_dir, filename)
             if os.path.exists(file_path):
                 os.remove(file_path)
+                return
+            
+            # Try old location for backward compatibility
+            old_file_path = os.path.join(old_uploads_dir, filename)
+            if os.path.exists(old_file_path):
+                os.remove(old_file_path)
+                return
+                
         except Exception as e:
             print(f"Warning: Could not delete file {filename}: {e}")
 

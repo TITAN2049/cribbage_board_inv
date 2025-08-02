@@ -11,29 +11,42 @@ from app.app import app
 
 def init_database():
     """Initialize database for production"""
-    app_dir = Path(__file__).parent / "app"
-    db_path = app_dir / "database.db"
-    schema_path = Path(__file__).parent / "schema.sql"
+    base_dir = Path(__file__).parent
     
-    # Ensure app directory exists
+    # Use data directory for persistent storage
+    data_dir = base_dir / "data"
+    app_dir = base_dir / "app"
+    db_path = data_dir / "database.db"
+    schema_path = base_dir / "schema.sql"
+    
+    # Ensure directories exist
+    data_dir.mkdir(exist_ok=True)
+    (data_dir / "uploads").mkdir(exist_ok=True)
     app_dir.mkdir(exist_ok=True)
     (app_dir / "static" / "uploads").mkdir(parents=True, exist_ok=True)
     
     # Initialize database if it doesn't exist or is empty
     if not db_path.exists():
-        print("Initializing database for production...")
-        try:
-            with open(schema_path, 'r') as f:
-                schema = f.read()
-            
-            conn = sqlite3.connect(str(db_path))
-            conn.executescript(schema)
-            conn.close()
-            print("✅ Database initialized successfully!")
-        except Exception as e:
-            print(f"❌ Database initialization failed: {e}")
+        # Check if database exists in old location
+        old_db_path = app_dir / "database.db"
+        if old_db_path.exists():
+            print("Moving database from app directory to data directory...")
+            old_db_path.rename(db_path)
+            print("✅ Database moved to data directory")
+        else:
+            print("Initializing new database for production...")
+            try:
+                with open(schema_path, 'r') as f:
+                    schema = f.read()
+                
+                conn = sqlite3.connect(str(db_path))
+                conn.executescript(schema)
+                conn.close()
+                print("✅ Database initialized successfully!")
+            except Exception as e:
+                print(f"❌ Database initialization failed: {e}")
     else:
-        print("✅ Database already exists")
+        print("✅ Database already exists in data directory")
 
 def main():
     """Main entry point for production"""

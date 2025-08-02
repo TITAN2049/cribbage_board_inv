@@ -33,7 +33,9 @@ CREATE TABLE boards (
 CREATE TABLE players (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   first_name TEXT,
-  last_name TEXT
+  last_name TEXT,
+  photo TEXT,
+  date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE games (
