@@ -62,14 +62,33 @@ def main():
     print(f"🌐 Starting server on port {port}")
     print("📱 App will be accessible from any device with internet!")
     
-    # Start the production server
-    app.run(
-        host='0.0.0.0',  # Listen on all interfaces (required for Railway)
-        port=port,
-        debug=False,
-        threaded=True,  # Handle multiple requests
-        use_reloader=False  # Disable in production
-    )
+    # Start the production server with Gunicorn
+    import subprocess
+    import sys
+    
+    try:
+        # Use Gunicorn for production (more robust than Flask dev server)
+        cmd = [
+            sys.executable, "-m", "gunicorn",
+            "--bind", f"0.0.0.0:{port}",
+            "--workers", "2",
+            "--timeout", "120",
+            "--keep-alive", "5",
+            "--max-requests", "1000",
+            "--max-requests-jitter", "100",
+            "app.app:app"
+        ]
+        subprocess.run(cmd, check=True)
+    except (ImportError, FileNotFoundError):
+        # Fallback to Flask dev server if Gunicorn not available
+        print("⚠️  Gunicorn not found, using Flask dev server")
+        app.run(
+            host='0.0.0.0',  # Listen on all interfaces (required for Railway)
+            port=port,
+            debug=False,
+            threaded=True,  # Handle multiple requests
+            use_reloader=False  # Disable in production
+        )
 
 if __name__ == '__main__':
     main()
