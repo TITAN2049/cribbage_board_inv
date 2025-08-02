@@ -190,7 +190,7 @@
       <a href="{{ url_for('board_detail', board_id=board.id) }}" class="block">
         {% if board.image_front %}
           <div class="relative overflow-hidden h-48">
-            <img src="{{ url_for('static', filename='uploads/' ~ board.image_front) }}" 
+            <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
                  class="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
                  alt="Board Front">
             <div class="absolute top-3 right-3">

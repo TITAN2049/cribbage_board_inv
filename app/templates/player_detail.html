@@ -31,7 +31,7 @@
       <!-- Player Photo -->
       <div class="flex-shrink-0">
         {% if player.photo %}
-          <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+          <img src="{{ url_for('uploaded_file', filename=player.photo) }}" 
                alt="{{ player.first_name }} {{ player.last_name }}" 
                class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg">
         {% else %}

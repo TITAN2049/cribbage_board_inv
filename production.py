@@ -7,7 +7,7 @@ Optimized for cloud hosting with proper configuration
 import os
 import sqlite3
 from pathlib import Path
-from app.app import app
+from app.app_hybrid import app
 
 def init_database():
     """Initialize database for production"""
@@ -89,7 +89,7 @@ def main():
             "--keep-alive", "5",
             "--max-requests", "1000",
             "--max-requests-jitter", "100",
-            "app.app:app"
+            "app.app_hybrid:app"
         ]
         subprocess.run(cmd, check=True)
     except (ImportError, FileNotFoundError):

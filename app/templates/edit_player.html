@@ -36,7 +36,7 @@
       <div class="mb-6 text-center">
         <label class="block text-sm font-medium text-gray-700 mb-3">Current Photo:</label>
         {% if player.photo %}
-          <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+          <img src="{{ url_for('uploaded_file', filename=player.photo) }}" 
                alt="{{ player.first_name }} {{ player.last_name }}" 
                class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-200 shadow-lg mb-3">
         {% else %}

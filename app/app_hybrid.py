@@ -131,6 +131,18 @@ def safe_delete_file(filename):
         except Exception as e:
             print(f"Warning: Could not delete file {filename}: {e}")
 
+@app.route("/uploads/<filename>")
+def uploaded_file(filename):
+    """Serve uploaded files (images)"""
+    try:
+        from flask import send_from_directory
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    except Exception as e:
+        print(f"Error serving file {filename}: {e}")
+        # Return a placeholder image or 404
+        from flask import abort
+        abort(404)
+
 @app.route("/")
 def index():
     try:
