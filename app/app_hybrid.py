@@ -349,7 +349,7 @@ def games():
             JOIN players w ON g.winner_id = w.id
             JOIN players l ON g.loser_id = l.id
             JOIN boards b ON g.board_id = b.id
-            ORDER BY g.date_played DESC, g.date_recorded DESC
+            ORDER BY g.date_played DESC, g.id DESC
         """
         
         if IS_RAILWAY:
