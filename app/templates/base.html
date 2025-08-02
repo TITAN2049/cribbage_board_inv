@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cribbage Board Collection</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto py-6 px-4">
+    <!-- Header -->
+    <header class="bg-white rounded-lg shadow-lg mb-8 p-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-indigo-800">🏠 Cribbage Board Collection</h1>
+        <nav class="flex space-x-1">
+          <a href="/" class="px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-100 transition-colors font-medium">
+            📋 Boards
+          </a>
+          <a href="/players" class="px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-100 transition-colors font-medium">
+            👥 Players
+          </a>
+          <a href="/games" class="px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-100 transition-colors font-medium">
+            🎮 Games
+          </a>
+          <a href="/stats" class="px-4 py-2 rounded-lg text-indigo-600 hover:bg-indigo-100 transition-colors font-medium">
+            🏆 Stats
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6 text-center">🎮 Game Records</h1>
+  
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-6">
+        {% for category, message in messages %}
+          <div class="alert-{{ category }} p-4 rounded-lg mb-3 {% if category == 'error' %}bg-red-100 text-red-800 border border-red-200{% else %}bg-green-100 text-green-800 border border-green-200{% endif %}">
+            <div class="flex items-center">
+              <span class="text-lg mr-2">{% if category == 'error' %}❌{% else %}✅{% endif %}</span>
+              <span>{{ message }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  
+  <!-- Add Game Button -->
+  <div class="text-center mb-6">
+    <button id="showAddForm" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+      + Add New Game
+    </button>
+  </div>
+
+  <!-- Add Game Form (hidden by default) -->
+  <form id="addGameForm" method="POST" action="/add_game" class="bg-white p-6 rounded-lg shadow-lg mb-8" style="display: none;">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-semibold">Record New Game</h2>
+      <button type="button" id="hideAddForm" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Board:</label>
+        <select name="board_id" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          {% for b in boards %}
+          <option value="{{ b.id }}">{{ b.roman_number or "Gift" }} - {{ b.wood_type }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Date Played:</label>
+        <input type="date" name="date_played" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Winner:</label>
+        <select name="winner_id" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          {% for p in players %}
+          <option value="{{ p.id }}">{{ p.first_name }} {{ p.last_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Loser:</label>
+        <select name="loser_id" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          {% for p in players %}
+          <option value="{{ p.id }}">{{ p.first_name }} {{ p.last_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="bg-orange-50 p-4 rounded-lg mb-4">
+      <h3 class="font-medium text-gray-700 mb-3">Skunk Status (optional):</h3>
+      <div class="flex flex-wrap gap-4">
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" name="is_skunk" class="rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+          <span class="text-sm">🦨 Skunk (loser < 91 points)</span>
+        </label>
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" name="is_double_skunk" class="rounded border-gray-300 text-red-600 focus:ring-red-500">
+          <span class="text-sm">💀 Double Skunk (loser < 61 points)</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex space-x-3">
+      <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+        Record Game
+      </button>
+      <button type="button" id="cancelAdd" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors">
+        Cancel
+      </button>
+    </div>
+  </form>
+
+  <!-- Games List -->
+  <div class="space-y-3">
+    {% for game in games %}
+    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="text-sm text-gray-500">{{ game.date_played }}</div>
+          <div class="text-lg">
+            <span class="font-bold text-green-600">{{ game.winner }}</span>
+            <span class="text-gray-400 mx-2">defeated</span>
+            <span class="font-medium text-red-600">{{ game.loser }}</span>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          {% if game.is_double_skunk %}
+            <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">💀 DOUBLE SKUNK</span>
+          {% elif game.is_skunk %}
+            <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">🦨 SKUNK</span>
+          {% endif %}
+          <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+            Board: {{ game.roman_number or "Gift" }}
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not games %}
+  <div class="text-center py-12">
+    <div class="text-6xl mb-4">🎯</div>
+    <h2 class="text-2xl font-bold text-gray-600 mb-2">No games recorded yet!</h2>
+    <p class="text-gray-500 mb-4">Start recording your cribbage games to track stats and rivalries.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const showButton = document.getElementById('showAddForm');
+  const hideButton = document.getElementById('hideAddForm');
+  const cancelButton = document.getElementById('cancelAdd');
+  const form = document.getElementById('addGameForm');
+  const skunkCheckbox = document.querySelector('input[name="is_skunk"]');
+  const doubleSkunkCheckbox = document.querySelector('input[name="is_double_skunk"]');
+
+  showButton.addEventListener('click', function() {
+    form.style.display = 'block';
+    showButton.style.display = 'none';
+    form.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  hideButton.addEventListener('click', function() {
+    form.style.display = 'none';
+    showButton.style.display = 'block';
+  });
+
+  cancelButton.addEventListener('click', function() {
+    form.style.display = 'none';
+    showButton.style.display = 'block';
+    form.reset();
+  });
+  
+  // If double skunk is checked, automatically check skunk too
+  doubleSkunkCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+      skunkCheckbox.checked = true;
+    }
+  });
+  
+  // If skunk is unchecked, uncheck double skunk too
+  skunkCheckbox.addEventListener('change', function() {
+    if (!this.checked) {
+      doubleSkunkCheckbox.checked = false;
+    }
+  });
+
+  // Prevent selecting same player for winner and loser
+  const winnerSelect = document.querySelector('select[name="winner_id"]');
+  const loserSelect = document.querySelector('select[name="loser_id"]');
+  
+  function checkPlayerSelection() {
+    if (winnerSelect.value === loserSelect.value && winnerSelect.value !== '') {
+      // Show warning
+      let warningDiv = document.getElementById('playerWarning');
+      if (!warningDiv) {
+        warningDiv = document.createElement('div');
+        warningDiv.id = 'playerWarning';
+        warningDiv.className = 'bg-red-100 text-red-800 p-3 rounded-lg mt-2 text-sm';
+        warningDiv.innerHTML = '⚠️ Winner and loser cannot be the same player!';
+        loserSelect.parentNode.appendChild(warningDiv);
+      }
+      return false;
+    } else {
+      // Remove warning if exists
+      const warningDiv = document.getElementById('playerWarning');
+      if (warningDiv) {
+        warningDiv.remove();
+      }
+      return true;
+    }
+  }
+  
+  winnerSelect.addEventListener('change', checkPlayerSelection);
+  loserSelect.addEventListener('change', checkPlayerSelection);
+  
+  // Validate form before submission
+  form.addEventListener('submit', function(e) {
+    if (!checkPlayerSelection()) {
+      e.preventDefault();
+      alert('Please select different players for winner and loser!');
+    }
+  });
+});
+</script>
+{% endblock %}

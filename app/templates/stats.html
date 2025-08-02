@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6 text-center">🏆 Player Leaderboard</h1>
+  
+  <div class="grid gap-4">
+    {% for stat in stats %}
+    <div class="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow duration-300">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+        
+        <!-- Player Name & Basic Stats -->
+        <div class="md:col-span-1">
+          <a href="{{ url_for('player_detail', player_id=stat.player.id) }}" 
+             class="text-xl font-bold text-blue-600 hover:text-blue-800 transition-colors">
+            {{ stat.player.first_name }} {{ stat.player.last_name }}
+          </a>
+          <div class="flex items-center space-x-4 mt-2">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-green-600">{{ stat.player.wins }}</div>
+              <div class="text-xs text-gray-500">WINS</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-red-600">{{ stat.player.total_losses }}</div>
+              <div class="text-xs text-gray-500">LOSSES</div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-semibold text-blue-600">
+                {% if stat.player.total_games > 0 %}
+                  {{ "%.1f"|format((stat.player.wins / stat.player.total_games) * 100) }}%
+                {% else %}
+                  0.0%
+                {% endif %}
+              </div>
+              <div class="text-xs text-gray-500">WIN RATE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skunk Stats -->
+        <div class="md:col-span-1">
+          <h3 class="font-semibold text-gray-700 mb-2">🦨 Skunk Record</h3>
+          <div class="flex justify-between">
+            <div class="text-center">
+              <div class="text-lg font-bold text-orange-600">{{ stat.player.skunks_given }}</div>
+              <div class="text-xs text-gray-500">Given</div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-bold text-orange-800">{{ stat.player.skunks_received }}</div>
+              <div class="text-xs text-gray-500">Received</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nemesis -->
+        <div class="md:col-span-1">
+          {% if stat.nemesis %}
+          <div class="bg-red-50 rounded-lg p-3 border-l-4 border-red-400">
+            <h3 class="font-semibold text-red-700 mb-1">😈 Nemesis</h3>
+            <div class="text-sm font-medium">{{ stat.nemesis.opponent_name }}</div>
+            <div class="text-xs text-red-600">{{ stat.nemesis.losses_to_them }} losses</div>
+          </div>
+          {% else %}
+          <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <div class="text-sm text-gray-500">No nemesis yet</div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Favorite Victim -->
+        <div class="md:col-span-1">
+          {% if stat.favorite_victim %}
+          <div class="bg-green-50 rounded-lg p-3 border-l-4 border-green-400">
+            <h3 class="font-semibold text-green-700 mb-1">🎯 Favorite Victim</h3>
+            <div class="text-sm font-medium">{{ stat.favorite_victim.opponent_name }}</div>
+            <div class="text-xs text-green-600">{{ stat.favorite_victim.wins_against_them }} wins</div>
+          </div>
+          {% else %}
+          <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <div class="text-sm text-gray-500">No favorite victim yet</div>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not stats %}
+  <div class="text-center py-12">
+    <div class="text-6xl mb-4">🎮</div>
+    <h2 class="text-2xl font-bold text-gray-600 mb-2">No players yet!</h2>
+    <p class="text-gray-500 mb-4">Add some players and start playing games to see stats here.</p>
+    <a href="{{ url_for('players') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+      Add Players
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

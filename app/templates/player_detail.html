@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">{{ player.first_name }} {{ player.last_name }} - Player Stats</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+  <!-- Overall Stats -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-lg font-semibold mb-2">Overall Record</h2>
+    <p><strong>Wins:</strong> {{ player_stats.wins }}</p>
+    <p><strong>Total Losses:</strong> {{ player_stats.total_losses }}</p>
+    <p><strong>Win Rate:</strong> 
+      {% if player_stats.total_games > 0 %}
+        {{ "%.1f"|format((player_stats.wins / player_stats.total_games) * 100) }}%
+      {% else %}
+        0.0%
+      {% endif %}
+    </p>
+    <p><strong>Games Played:</strong> {{ player_stats.total_games }}</p>
+  </div>
+
+  <!-- Skunk Stats -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-lg font-semibold mb-2">Skunk Stats</h2>
+    <p><strong>Skunks Given:</strong> {{ player_stats.skunks_given }}</p>
+    <p><strong>Double Skunks Given:</strong> {{ player_stats.double_skunks_given }}</p>
+    <p><strong>Skunks Received:</strong> {{ player_stats.skunks_received }}</p>
+    <p><strong>Double Skunks Received:</strong> {{ player_stats.double_skunks_received }}</p>
+  </div>
+</div>
+
+<!-- Nemesis and Favorite Opponent -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  {% if nemesis %}
+  <div class="bg-red-50 p-4 rounded shadow border-l-4 border-red-500">
+    <h2 class="text-lg font-semibold mb-2 text-red-700">🏴‍☠️ Nemesis</h2>
+    <p><strong>{{ nemesis.opponent_name }}</strong></p>
+    <p>{{ nemesis.losses }} losses out of {{ nemesis.total_games }} games</p>
+    <p>Win rate: {{ "%.1f"|format((nemesis.wins / nemesis.total_games) * 100) }}%</p>
+  </div>
+  {% endif %}
+
+  {% if favorite_opponent %}
+  <div class="bg-green-50 p-4 rounded shadow border-l-4 border-green-500">
+    <h2 class="text-lg font-semibold mb-2 text-green-700">🎯 Favorite Victim</h2>
+    <p><strong>{{ favorite_opponent.opponent_name }}</strong></p>
+    <p>{{ favorite_opponent.wins }} wins out of {{ favorite_opponent.total_games }} games</p>
+    <p>Win rate: {{ "%.1f"|format((favorite_opponent.wins / favorite_opponent.total_games) * 100) }}%</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Head-to-Head Records -->
+<div class="bg-white p-4 rounded shadow mb-6">
+  <h2 class="text-lg font-semibold mb-4">Head-to-Head Records</h2>
+  <table class="w-full">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="p-2 text-left">Opponent</th>
+        <th class="p-2 text-center">Wins</th>
+        <th class="p-2 text-center">Losses</th>
+        <th class="p-2 text-center">Win %</th>
+        <th class="p-2 text-center">Skunks Given</th>
+        <th class="p-2 text-center">Skunks Received</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in head_to_head %}
+      <tr class="border-t">
+        <td class="p-2">{{ record.opponent_name }}</td>
+        <td class="p-2 text-center">{{ record.wins }}</td>
+        <td class="p-2 text-center">{{ record.losses }}</td>
+        <td class="p-2 text-center">{{ "%.1f"|format((record.wins / record.total_games) * 100) }}%</td>
+        <td class="p-2 text-center">{{ record.skunks_given }}</td>
+        <td class="p-2 text-center">{{ record.skunks_received }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Recent Games -->
+<div class="bg-white p-4 rounded shadow">
+  <h2 class="text-lg font-semibold mb-4">Recent Games (Last 10)</h2>
+  <ul class="space-y-2">
+    {% for game in recent_games %}
+    <li class="border-b pb-2">
+      <div class="flex justify-between items-center">
+        <span>{{ game.date_played }}</span>
+        <span>
+          {% if game.winner_id == player.id %}
+            <span class="text-green-600 font-bold">WON</span> vs {{ game.opponent_name }}
+            {% if game.is_double_skunk %}
+              <span class="text-green-600 font-bold">(DOUBLE SKUNK!)</span>
+            {% elif game.is_skunk %}
+              <span class="text-green-600 font-bold">(SKUNK!)</span>
+            {% endif %}
+          {% else %}
+            <span class="text-red-600 font-bold">LOST</span> to {{ game.opponent_name }}
+            {% if game.is_double_skunk %}
+              <span class="text-red-600 font-bold">(DOUBLE SKUNKED!)</span>
+            {% elif game.is_skunk %}
+              <span class="text-red-600 font-bold">(SKUNKED!)</span>
+            {% endif %}
+          {% endif %}
+        </span>
+        <span class="text-sm text-gray-500">Board: {{ game.roman_number or "Gift" }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="mt-6">
+  <a href="{{ url_for('stats') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">← Back to All Stats</a>
+</div>
+{% endblock %}

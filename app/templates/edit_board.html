@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Back Button -->
+  <div class="mb-6">
+    <a href="{{ url_for('board_detail', board_id=board.id) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+      </svg>
+      Back to Board Details
+    </a>
+  </div>
+
+  <!-- Edit Board Header -->
+  <div class="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-t-xl shadow-lg">
+    <h1 class="text-3xl font-bold">Edit Board {{ board.roman_number or '' }}</h1>
+    <p class="text-green-100 mt-2">Update board information and images</p>
+  </div>
+
+  <!-- Edit Form -->
+  <div class="bg-white rounded-b-xl shadow-lg p-6">
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+      <!-- Basic Information -->
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Basic Information</h3>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date Made</label>
+            <input type="text" name="date" value="{{ board.date or '' }}" 
+                   placeholder="mm/dd/yyyy" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Roman Numeral</label>
+            <input type="text" name="roman" value="{{ board.roman_number or '' }}" 
+                   placeholder="I, II, III, IV, etc." 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea name="desc" rows="3" 
+                      placeholder="Describe the board's features, style, or history..." 
+                      class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{{ board.description or '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Materials</h3>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Wood Type</label>
+            <input type="text" name="wood" value="{{ board.wood_type or '' }}" 
+                   placeholder="Oak, Cherry, Walnut, etc." 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Material Type</label>
+            <input type="text" name="material" value="{{ board.material_type or '' }}" 
+                   placeholder="Wood, Plastic, Metal, etc." 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+        </div>
+      </div>
+
+      <!-- Status and Gift Information -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Status & Gift Information</h3>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <label class="flex items-center space-x-3">
+              <input type="checkbox" name="in_collection" {% if board.in_collection %}checked{% endif %} 
+                     class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <span class="text-sm font-medium text-gray-700">In My Collection</span>
+            </label>
+            
+            <label class="flex items-center space-x-3">
+              <input type="checkbox" name="is_gift" {% if board.is_gift %}checked{% endif %} 
+                     class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
+              <span class="text-sm font-medium text-gray-700">This board was a gift</span>
+            </label>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Gifted To</label>
+              <input type="text" name="gifted_to" value="{{ board.gifted_to or '' }}" 
+                     placeholder="Person's name (if applicable)" 
+                     class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Gifted From</label>
+              <input type="text" name="gifted_from" value="{{ board.gifted_from or '' }}" 
+                     placeholder="Person's name (if applicable)" 
+                     class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Board Images</h3>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Front Image</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+              <input type="file" name="front" accept="image/*" 
+                     class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              {% if board.image_front %}
+              <p class="text-xs text-gray-500 mt-2">Current: {{ board.image_front }}</p>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Back Image</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+              <input type="file" name="back" accept="image/*" 
+                     class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              {% if board.image_back %}
+              <p class="text-xs text-gray-500 mt-2">Current: {{ board.image_back }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between pt-6 border-t">
+        <a href="{{ url_for('board_detail', board_id=board.id) }}" 
+           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200">
+          Cancel
+        </a>
+        
+        <button type="submit" 
+                class="px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

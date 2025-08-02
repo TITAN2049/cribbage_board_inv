@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    🏆 Cribbage Board Collection
+  </h1>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-6">
+        {% for category, message in messages %}
+          <div class="alert-{{ category }} p-4 rounded-lg mb-3 {% if category == 'error' %}bg-red-100 text-red-800 border border-red-200{% else %}bg-green-100 text-green-800 border border-green-200{% endif %}">
+            <div class="flex items-center">
+              <span class="text-lg mr-2">{% if category == 'error' %}❌{% else %}✅{% endif %}</span>
+              <span>{{ message }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Add Board Button -->
+  <div class="text-center mb-8">
+    <button id="showAddForm" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+      ✨ Add New Board
+    </button>
+  </div>
+
+  <!-- Add Board Form (hidden by default) -->
+  <form id="addBoardForm" method="POST" action="/add_board" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-2xl p-8 mb-8 border border-gray-100" style="display: none;">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        🎯 Add New Board
+      </h2>
+      <button type="button" id="hideAddForm" class="text-gray-400 hover:text-gray-600 text-3xl transition-colors duration-200 hover:rotate-90 transform">×</button>
+    </div>
+    
+    <!-- Basic Information Section -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+        📝 Basic Information
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Made:</label>
+          <input type="text" name="date" placeholder="mm/dd/yyyy" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Roman Numeral:</label>
+          <input type="text" name="roman" placeholder="I, II, III, etc." class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Description:</label>
+        <textarea name="desc" placeholder="Describe your beautiful cribbage board..." rows="3" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"></textarea>
+      </div>
+    </div>
+
+    <!-- Materials Section -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+        🪵 Materials
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Material Type:</label>
+          <select name="material" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+            <option disabled selected>Select Material Type</option>
+            {% for m in material_types %}
+            <option value="{{ m.name }}">{{ m.name }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="new_material" placeholder="Or add new material type..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200 mt-2 text-sm">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Wood Type:</label>
+          <select name="wood" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+            <option disabled selected>Select Wood Type</option>
+            {% for w in wood_types %}
+            <option value="{{ w.name }}">{{ w.name }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="new_wood" placeholder="Or add new wood type..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200 mt-2 text-sm">
+        </div>
+      </div>
+    </div>
+
+    <!-- Collection & Gift Status -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+        🎁 Status & History
+      </h3>
+      
+      <div class="bg-blue-50 p-6 rounded-xl mb-4">
+        <label class="flex items-center space-x-3 cursor-pointer">
+          <input type="checkbox" name="in_collection" checked class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+          <span class="text-lg font-medium text-gray-700">📦 This board is in my collection</span>
+        </label>
+      </div>
+      
+      <div class="bg-orange-50 p-6 rounded-xl">
+        <label class="flex items-center space-x-3 cursor-pointer mb-4">
+          <input type="checkbox" name="is_gift" id="giftCheckbox" class="w-5 h-5 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500">
+          <span class="text-lg font-medium text-gray-700">🎁 This board was a gift</span>
+        </label>
+        <div id="giftDetails" class="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50 transition-opacity duration-300">
+          <input type="text" name="gifted_to" placeholder="Gifted To (person's name)" class="w-full border-2 border-orange-200 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
+          <input type="text" name="gifted_from" placeholder="Gifted From (person's name)" class="w-full border-2 border-orange-200 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
+        </div>
+      </div>
+    </div>
+
+    <!-- Images Section -->
+    <div class="mb-8">
+      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+        📸 Board Images
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors duration-200">
+          <div class="mb-4">
+            <div class="text-4xl mb-2">🖼️</div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Front Image:</label>
+          </div>
+          <input type="file" name="front" required accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200">
+        </div>
+        
+        <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors duration-200">
+          <div class="mb-4">
+            <div class="text-4xl mb-2">🔄</div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Back Image:</label>
+          </div>
+          <input type="file" name="back" required accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-center space-x-4 pt-6 border-t border-gray-200">
+      <button type="submit" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+        🚀 Add Board
+      </button>
+      <button type="button" id="cancelAdd" class="bg-gradient-to-r from-gray-400 to-gray-500 text-white px-8 py-4 rounded-xl hover:from-gray-500 hover:to-gray-600 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+        ❌ Cancel
+      </button>
+    </div>
+  </form>
+
+  <!-- Filter Options -->
+  <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+      🔍 Filter Collection
+    </h3>
+    <form method="GET" action="/" class="flex flex-wrap gap-4">
+      <div class="flex-1 min-w-48">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Collection Status:</label>
+        <select name="filter_collection" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+          <option value="">All Boards</option>
+          <option value="1">📦 In Collection</option>
+          <option value="0">🚫 Not In Collection</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-48">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gift Status:</label>
+        <select name="filter_gifted" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+          <option value="">All Boards</option>
+          <option value="1">🎁 Gifts</option>
+          <option value="0">🛠️ Made by Me</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-48">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gifted To:</label>
+        <input type="text" name="filter_gifted_to" placeholder="Person's name..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+      </div>
+      <div class="flex items-end">
+        <button class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+          🔍 Filter
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Boards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for board in boards %}
+    <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 transform hover:scale-105">
+      <a href="{{ url_for('board_detail', board_id=board.id) }}" class="block">
+        {% if board.image_front %}
+          <div class="relative overflow-hidden h-48">
+            <img src="{{ url_for('static', filename='uploads/' ~ board.image_front) }}" 
+                 class="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
+                 alt="Board Front">
+            <div class="absolute top-3 right-3">
+              {% if board.in_collection %}
+                <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">📦 Collection</span>
+              {% else %}
+                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-bold">🚫 Not Owned</span>
+              {% endif %}
+            </div>
+            {% if board.is_gift %}
+              <div class="absolute top-3 left-3">
+                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">🎁 Gift</span>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+        
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xl font-bold text-gray-800">{{ board.roman_number or "🎁 Gift" }}</h3>
+            <span class="text-sm text-gray-500">{{ board.date or "Unknown" }}</span>
+          </div>
+          
+          <p class="text-gray-600 mb-3">{{ board.wood_type }}</p>
+          
+          {% if board.description %}
+            <p class="text-gray-500 text-sm mb-3 line-clamp-2">{{ board.description }}</p>
+          {% endif %}
+          
+          {% if board.gifted_to or board.gifted_from %}
+            <div class="text-xs text-gray-400 mb-2">
+              {% if board.gifted_to %}
+                <span>🎁 To: {{ board.gifted_to }}</span>
+              {% endif %}
+              {% if board.gifted_from %}
+                <span>📨 From: {{ board.gifted_from }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </a>
+      
+      <div class="px-6 pb-6 flex justify-between items-center border-t border-gray-100 pt-4">
+        <a href="{{ url_for('edit_board', board_id=board.id) }}" 
+           class="text-yellow-600 hover:text-yellow-700 font-medium transition-colors duration-200 flex items-center space-x-1">
+          <span>✏️</span>
+          <span>Edit</span>
+        </a>
+        <form action="/delete_board/{{ board.id }}" method="POST" class="inline">
+          <button class="text-red-600 hover:text-red-700 font-medium transition-colors duration-200 flex items-center space-x-1" 
+                  onclick="return confirm('Are you sure you want to delete this board?')">
+            <span>🗑️</span>
+            <span>Delete</span>
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not boards %}
+  <div class="text-center py-16">
+    <div class="text-8xl mb-6">🎯</div>
+    <h2 class="text-3xl font-bold text-gray-600 mb-4">No boards in your collection yet!</h2>
+    <p class="text-gray-500 text-lg mb-6">Start building your amazing cribbage board collection.</p>
+    <button onclick="document.getElementById('showAddForm').click()" 
+            class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+      ✨ Add Your First Board
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const showButton = document.getElementById('showAddForm');
+  const hideButton = document.getElementById('hideAddForm');
+  const cancelButton = document.getElementById('cancelAdd');
+  const form = document.getElementById('addBoardForm');
+  const giftCheckbox = document.getElementById('giftCheckbox');
+  const giftDetails = document.getElementById('giftDetails');
+
+  // Show/hide form functionality
+  showButton.addEventListener('click', function() {
+    form.style.display = 'block';
+    showButton.style.display = 'none';
+    form.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  hideButton.addEventListener('click', function() {
+    form.style.display = 'none';
+    showButton.style.display = 'block';
+  });
+
+  cancelButton.addEventListener('click', function() {
+    form.style.display = 'none';
+    showButton.style.display = 'block';
+    form.reset();
+    // Reset gift details opacity
+    giftDetails.style.opacity = '0.5';
+  });
+
+  // Gift checkbox functionality
+  giftCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+      giftDetails.style.opacity = '1';
+      giftDetails.querySelectorAll('input').forEach(input => {
+        input.disabled = false;
+      });
+    } else {
+      giftDetails.style.opacity = '0.5';
+      giftDetails.querySelectorAll('input').forEach(input => {
+        input.disabled = true;
+        input.value = '';
+      });
+    }
+  });
+
+  // Initialize gift details state
+  if (!giftCheckbox.checked) {
+    giftDetails.querySelectorAll('input').forEach(input => {
+      input.disabled = true;
+    });
+  }
+});
+</script>
+{% endblock %}
