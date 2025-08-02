@@ -1,5 +1,8 @@
 import os
 import sqlite3
+import uuid
+import time
+from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
@@ -16,6 +19,32 @@ def get_db():
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+def generate_unique_filename(original_filename, prefix=""):
+    """Generate a unique filename to prevent overwrites"""
+    if not original_filename:
+        return f"{prefix}_{int(time.time())}_{uuid.uuid4().hex[:8]}.jpg"
+    
+    # Get file extension
+    filename = secure_filename(original_filename)
+    name, ext = os.path.splitext(filename)
+    if not ext:
+        ext = '.jpg'
+    
+    # Generate unique filename with timestamp and UUID
+    timestamp = int(time.time())
+    unique_id = uuid.uuid4().hex[:8]
+    return f"{prefix}_{timestamp}_{unique_id}_{name}{ext}"
+
+def safe_delete_file(filename):
+    """Safely delete a file if it exists"""
+    if filename:
+        try:
+            file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            print(f"Warning: Could not delete file {filename}: {e}")
 
 @app.route("/")
 def index():
@@ -82,8 +111,21 @@ def add_board():
 
     front_img = request.files["front"]
     back_img = request.files["back"]
-    front_filename = front_img.filename
-    back_filename = back_img.filename
+    
+    # Validate that both images are provided
+    if not front_img or not front_img.filename:
+        flash("Front image is required!", "error")
+        return redirect(url_for("index"))
+    
+    if not back_img or not back_img.filename:
+        flash("Back image is required!", "error")
+        return redirect(url_for("index"))
+    
+    # Generate unique filenames to prevent overwrites
+    front_filename = generate_unique_filename(front_img.filename, "front")
+    back_filename = generate_unique_filename(back_img.filename, "back")
+    
+    # Save images
     front_img.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
     back_img.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
 
@@ -100,8 +142,19 @@ def add_board():
 @app.route("/delete_board/<int:board_id>", methods=["POST"])
 def delete_board(board_id):
     db = get_db()
+    
+    # Get the board info before deleting to clean up images
+    board = db.execute("SELECT image_front, image_back FROM boards WHERE id = ?", (board_id,)).fetchone()
+    
+    if board:
+        # Clean up image files
+        safe_delete_file(board["image_front"])
+        safe_delete_file(board["image_back"])
+    
+    # Delete the board record
     db.execute("DELETE FROM boards WHERE id = ?", (board_id,))
     db.commit()
+    flash("Board deleted successfully!", "success")
     return redirect(url_for("index"))
 
 @app.route("/edit_board/<int:board_id>", methods=["GET", "POST"])
@@ -127,11 +180,17 @@ def edit_board(board_id):
         back_filename = board["image_back"]
         
         if front_img and front_img.filename:
-            front_filename = front_img.filename
+            # Delete old front image
+            safe_delete_file(front_filename)
+            # Save new front image
+            front_filename = generate_unique_filename(front_img.filename, "front")
             front_img.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
             
         if back_img and back_img.filename:
-            back_filename = back_img.filename
+            # Delete old back image
+            safe_delete_file(back_filename)
+            # Save new back image
+            back_filename = generate_unique_filename(back_img.filename, "back")
             back_img.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
         
         db.execute("""
