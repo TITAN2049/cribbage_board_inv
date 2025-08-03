@@ -32,24 +32,25 @@ def init_database():
                 cursor.execute("""
                     CREATE TABLE boards (
                         id SERIAL PRIMARY KEY,
+                        date VARCHAR(50),
                         roman_number VARCHAR(10),
                         description TEXT,
                         wood_type VARCHAR(100),
-                        stain VARCHAR(100),
-                        finish VARCHAR(100),
-                        pegs_included VARCHAR(10),
-                        price DECIMAL(10,2),
-                        front_view VARCHAR(255),
-                        back_view VARCHAR(255),
-                        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        material_type VARCHAR(100),
+                        image_front VARCHAR(255),
+                        image_back VARCHAR(255),
+                        is_gift INTEGER DEFAULT 0,
+                        gifted_to VARCHAR(255),
+                        gifted_from VARCHAR(255),
+                        in_collection INTEGER DEFAULT 1
                     )
                 """)
                 
                 cursor.execute("""
                     CREATE TABLE players (
                         id SERIAL PRIMARY KEY,
-                        first_name VARCHAR(100) NOT NULL,
-                        last_name VARCHAR(100) NOT NULL,
+                        first_name VARCHAR(100),
+                        last_name VARCHAR(100),
                         photo VARCHAR(255),
                         date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
@@ -61,10 +62,12 @@ def init_database():
                         board_id INTEGER REFERENCES boards(id),
                         winner_id INTEGER REFERENCES players(id),
                         loser_id INTEGER REFERENCES players(id),
-                        date_played DATE,
-                        is_skunk BOOLEAN DEFAULT FALSE,
-                        is_double_skunk BOOLEAN DEFAULT FALSE,
-                        date_recorded TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        winner_score INTEGER DEFAULT 121,
+                        loser_score INTEGER DEFAULT 0,
+                        is_skunk INTEGER DEFAULT 0,
+                        is_double_skunk INTEGER DEFAULT 0,
+                        date_played VARCHAR(50) DEFAULT CURRENT_DATE,
+                        notes TEXT
                     )
                 """)
                 

@@ -146,7 +146,7 @@ def uploaded_file(filename):
 @app.route("/")
 def index():
     try:
-        boards = execute_query("SELECT * FROM boards ORDER BY date_added DESC", fetch=True)
+        boards = execute_query("SELECT * FROM boards ORDER BY date DESC", fetch=True)
         return render_template("index.html", boards=boards)
     except Exception as e:
         flash(f"Database error: {e}", "error")
@@ -169,36 +169,38 @@ def add_board():
     if request.method == "POST":
         try:
             # Get form data
-            roman_number = request.form["roman_number"]
-            description = request.form["description"]
-            wood_type = request.form["wood_type"]
-            stain = request.form["stain"]
-            finish = request.form["finish"]
-            pegs_included = request.form["pegs_included"]
-            price = float(request.form["price"]) if request.form["price"] else None
+            date = request.form.get("date", "")
+            roman_number = request.form.get("roman_number", "")
+            description = request.form.get("description", "")
+            wood_type = request.form.get("wood_type", "")
+            material_type = request.form.get("material_type", "")
+            is_gift = 1 if request.form.get("is_gift") == "on" else 0
+            gifted_to = request.form.get("gifted_to", "")
+            gifted_from = request.form.get("gifted_from", "")
+            in_collection = 1 if request.form.get("in_collection") == "on" else 0
             
             # Handle file uploads
-            front_view = request.files.get("front_view")
-            back_view = request.files.get("back_view")
+            front_image = request.files.get("image_front")
+            back_image = request.files.get("image_back")
             
             front_filename = None
             back_filename = None
             
-            if front_view and front_view.filename:
-                front_filename = generate_unique_filename(front_view.filename, "front")
-                front_view.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
+            if front_image and front_image.filename:
+                front_filename = generate_unique_filename(front_image.filename, "front")
+                front_image.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
             
-            if back_view and back_view.filename:
-                back_filename = generate_unique_filename(back_view.filename, "back")
-                back_view.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
+            if back_image and back_image.filename:
+                back_filename = generate_unique_filename(back_image.filename, "back")
+                back_image.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
             
             # Insert into database
             execute_query("""
-                INSERT INTO boards (roman_number, description, wood_type, stain, finish, 
-                                  pegs_included, price, front_view, back_view)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [roman_number, description, wood_type, stain, finish, 
-                  pegs_included, price, front_filename, back_filename])
+                INSERT INTO boards (date, roman_number, description, wood_type, material_type, 
+                                  image_front, image_back, is_gift, gifted_to, gifted_from, in_collection)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [date, roman_number, description, wood_type, material_type, 
+                  front_filename, back_filename, is_gift, gifted_to, gifted_from, in_collection])
             
             flash("Board added successfully!", "success")
             return redirect(url_for("index"))
