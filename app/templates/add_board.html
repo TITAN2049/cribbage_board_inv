@@ -27,6 +27,34 @@ function toggleWoodType(material) {
     if (woodTypeSelect) {
       woodTypeSelect.value = '';
     }
+    // Also hide wood other field
+    document.getElementById('wood-other-group').style.display = 'none';
+  }
+}
+
+function toggleOtherMaterial(material) {
+  const materialOtherGroup = document.getElementById('material-other-group');
+  if (material === 'Other') {
+    materialOtherGroup.style.display = 'block';
+  } else {
+    materialOtherGroup.style.display = 'none';
+    const materialOtherInput = materialOtherGroup.querySelector('input[name="material_type_other"]');
+    if (materialOtherInput) {
+      materialOtherInput.value = '';
+    }
+  }
+}
+
+function toggleOtherWood(woodType) {
+  const woodOtherGroup = document.getElementById('wood-other-group');
+  if (woodType === 'Other') {
+    woodOtherGroup.style.display = 'block';
+  } else {
+    woodOtherGroup.style.display = 'none';
+    const woodOtherInput = woodOtherGroup.querySelector('input[name="wood_type_other"]');
+    if (woodOtherInput) {
+      woodOtherInput.value = '';
+    }
   }
 }
 
@@ -94,7 +122,7 @@ function toggleGiftFields(isGift) {
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div class="form-group">
         <label class="form-label">Material Type</label>
-        <select name="material_type" class="form-input" onchange="toggleWoodType(this.value)">
+        <select name="material_type" class="form-input" onchange="toggleWoodType(this.value); toggleOtherMaterial(this.value)">
           <option value="">Select material</option>
           <option value="Wood">Wood</option>
           <option value="Plastic">Plastic</option>
@@ -103,9 +131,14 @@ function toggleGiftFields(isGift) {
         </select>
       </div>
       
+      <div class="form-group" id="material-other-group" style="display: none;">
+        <label class="form-label">Custom Material Type</label>
+        <input type="text" name="material_type_other" class="form-input" placeholder="Enter custom material type">
+      </div>
+      
       <div class="form-group" id="wood-type-group" style="display: none;">
         <label class="form-label">Wood Type</label>
-        <select name="wood_type" class="form-input">
+        <select name="wood_type" class="form-input" onchange="toggleOtherWood(this.value)">
           <option value="">Select wood type</option>
           <option value="Oak">Oak</option>
           <option value="Maple">Maple</option>
@@ -116,6 +149,11 @@ function toggleGiftFields(isGift) {
           <option value="Mahogany">Mahogany</option>
           <option value="Other">Other</option>
         </select>
+      </div>
+      
+      <div class="form-group" id="wood-other-group" style="display: none;">
+        <label class="form-label">Custom Wood Type</label>
+        <input type="text" name="wood_type_other" class="form-input" placeholder="Enter custom wood type">
       </div>
     </div>
 

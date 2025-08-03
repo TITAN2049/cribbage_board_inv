@@ -187,10 +187,19 @@ def add_board():
             description = request.form.get("description", "")
             wood_type = request.form.get("wood_type", "")
             material_type = request.form.get("material_type", "")
-            is_gift = 1 if request.form.get("is_gift") == "on" else 0
+            is_gift = int(request.form.get("is_gift", "0"))
             gifted_to = request.form.get("gifted_to", "")
             gifted_from = request.form.get("gifted_from", "")
-            in_collection = 1 if request.form.get("in_collection") == "on" else 0
+            in_collection = int(request.form.get("in_collection", "1"))  # Default to 1 (in collection)
+            
+                        # Handle "Other" options with custom input (support both naming conventions)
+            wood_type_other = request.form.get("wood_type_other", "") or request.form.get("custom_wood_type", "")
+            if wood_type == "Other" and wood_type_other.strip():
+                wood_type = wood_type_other.strip()
+                
+            material_type_other = request.form.get("material_type_other", "") or request.form.get("custom_material_type", "")
+            if material_type == "Other" and material_type_other.strip():
+                material_type = material_type_other.strip()
             
             # Handle file uploads
             front_image = request.files.get("image_front")
@@ -199,13 +208,25 @@ def add_board():
             front_filename = None
             back_filename = None
             
-            if front_image and front_image.filename:
-                front_filename = generate_unique_filename(front_image.filename, "front")
-                front_image.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
+            if front_image and front_image.filename and front_image.filename.strip():
+                try:
+                    front_filename = generate_unique_filename(front_image.filename, "front")
+                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], front_filename)
+                    front_image.save(upload_path)
+                    print(f"Front image saved: {upload_path}")
+                except Exception as e:
+                    print(f"Error saving front image: {e}")
+                    front_filename = None
             
-            if back_image and back_image.filename:
-                back_filename = generate_unique_filename(back_image.filename, "back")
-                back_image.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
+            if back_image and back_image.filename and back_image.filename.strip():
+                try:
+                    back_filename = generate_unique_filename(back_image.filename, "back")
+                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], back_filename)
+                    back_image.save(upload_path)
+                    print(f"Back image saved: {upload_path}")
+                except Exception as e:
+                    print(f"Error saving back image: {e}")
+                    back_filename = None
             
             # Insert into database
             execute_query("""
@@ -244,10 +265,19 @@ def edit_board(board_id):
             description = request.form.get("description", "")
             wood_type = request.form.get("wood_type", "")
             material_type = request.form.get("material_type", "")
-            is_gift = 1 if request.form.get("is_gift") == "on" else 0
+            is_gift = int(request.form.get("is_gift", "0"))
             gifted_to = request.form.get("gifted_to", "")
             gifted_from = request.form.get("gifted_from", "")
-            in_collection = 1 if request.form.get("in_collection") == "on" else 0
+            in_collection = int(request.form.get("in_collection", "1"))  # Default to 1 (in collection)
+            
+            # Handle "Other" options with custom input (support both naming conventions)
+            wood_type_other = request.form.get("wood_type_other", "") or request.form.get("custom_wood_type", "")
+            if wood_type == "Other" and wood_type_other.strip():
+                wood_type = wood_type_other.strip()
+                
+            material_type_other = request.form.get("material_type_other", "") or request.form.get("custom_material_type", "")
+            if material_type == "Other" and material_type_other.strip():
+                material_type = material_type_other.strip()
             
             # Handle file uploads
             front_image = request.files.get("image_front")
@@ -259,13 +289,23 @@ def edit_board(board_id):
             back_filename = current_board[0]['image_back'] if current_board else None
             
             # Update filenames if new files uploaded
-            if front_image and front_image.filename:
-                front_filename = generate_unique_filename(front_image.filename, "front")
-                front_image.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
+            if front_image and front_image.filename and front_image.filename.strip():
+                try:
+                    front_filename = generate_unique_filename(front_image.filename, "front")
+                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], front_filename)
+                    front_image.save(upload_path)
+                    print(f"Front image updated: {upload_path}")
+                except Exception as e:
+                    print(f"Error updating front image: {e}")
             
-            if back_image and back_image.filename:
-                back_filename = generate_unique_filename(back_image.filename, "back")
-                back_image.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
+            if back_image and back_image.filename and back_image.filename.strip():
+                try:
+                    back_filename = generate_unique_filename(back_image.filename, "back")
+                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], back_filename)
+                    back_image.save(upload_path)
+                    print(f"Back image updated: {upload_path}")
+                except Exception as e:
+                    print(f"Error updating back image: {e}")
             
             # Update database
             execute_query("""
