@@ -33,7 +33,7 @@
       <div class="form-group mb-4">
         <label class="form-label">Current Photo</label>
         <div class="mb-2">
-          <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+          <img src="{{ url_for('uploaded_file', filename=player.photo) }}" 
                alt="{{ player.first_name }} {{ player.last_name }}" 
                class="w-20 h-20 object-cover rounded-full"
                style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 50%;">

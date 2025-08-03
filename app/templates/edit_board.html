@@ -115,7 +115,7 @@
           {% if board.image_front %}
             <div>
               <p class="text-sm text-gray-600 mb-1">Front</p>
-              <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+              <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
                    alt="Front" class="w-full h-32 object-cover rounded">
             </div>
           {% endif %}
@@ -123,7 +123,7 @@
           {% if board.image_back %}
             <div>
               <p class="text-sm text-gray-600 mb-1">Back</p>
-              <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+              <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
                    alt="Back" class="w-full h-32 object-cover rounded">
             </div>
           {% endif %}

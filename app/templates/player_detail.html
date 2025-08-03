@@ -13,7 +13,7 @@
 <div class="card p-6 mb-6">
   <div class="flex items-start gap-6">
     {% if player.photo %}
-      <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+      <img src="{{ url_for('uploaded_file', filename=player.photo) }}" 
            alt="{{ player.first_name }} {{ player.last_name }}" 
            class="w-24 h-24 object-cover rounded-full flex-shrink-0"
            style="width: 6rem; height: 6rem; object-fit: cover; border-radius: 50%;">

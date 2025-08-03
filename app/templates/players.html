@@ -35,7 +35,7 @@
             <!-- Player Avatar -->
             <div class="text-center mb-4">
               {% if player.photo %}
-                <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+                <img src="{{ url_for('uploaded_file', filename=player.photo) }}" 
                      alt="{{ player.first_name }} {{ player.last_name }}" 
                      class="w-20 h-20 rounded-full mx-auto object-cover"
                      style="width: 5rem; height: 5rem; object-fit: cover; border-radius: 50%;">

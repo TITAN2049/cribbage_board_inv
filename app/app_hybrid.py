@@ -267,13 +267,65 @@ def safe_delete_file(filename):
 def uploaded_file(filename):
     """Serve uploaded files (images)"""
     try:
+        print(f"🖼️ Serving file request: {filename}")
+        print(f"📁 Upload folder: {app.config['UPLOAD_FOLDER']}")
+        print(f"📂 Directory exists: {os.path.exists(app.config['UPLOAD_FOLDER'])}")
+        
+        if os.path.exists(app.config['UPLOAD_FOLDER']):
+            files_in_dir = os.listdir(app.config['UPLOAD_FOLDER'])
+            print(f"📂 Files in upload directory: {files_in_dir}")
+        
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        print(f"📄 Looking for file: {file_path}")
+        print(f"📄 File exists: {os.path.exists(file_path)}")
+        
+        if os.path.exists(file_path):
+            file_size = os.path.getsize(file_path)
+            print(f"📊 File size: {file_size} bytes")
+        
         from flask import send_from_directory
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
     except Exception as e:
-        print(f"Error serving file {filename}: {e}")
+        print(f"❌ Error serving file {filename}: {e}")
+        print(f"🔍 Exception type: {type(e)}")
+        import traceback
+        print(f"📍 Full traceback: {traceback.format_exc()}")
         # Return a placeholder image or 404
         from flask import abort
         abort(404)
+
+@app.route("/debug/filesystem")
+def debug_filesystem():
+    """Debug route to check filesystem status"""
+    try:
+        debug_info = {
+            "upload_folder": app.config.get("UPLOAD_FOLDER"),
+            "upload_folder_exists": os.path.exists(app.config.get("UPLOAD_FOLDER", "")),
+            "current_working_directory": os.getcwd(),
+            "is_railway": IS_RAILWAY,
+        }
+        
+        if app.config.get("UPLOAD_FOLDER") and os.path.exists(app.config["UPLOAD_FOLDER"]):
+            debug_info["upload_folder_writable"] = os.access(app.config["UPLOAD_FOLDER"], os.W_OK)
+            debug_info["upload_folder_readable"] = os.access(app.config["UPLOAD_FOLDER"], os.R_OK)
+            debug_info["files_in_upload_folder"] = os.listdir(app.config["UPLOAD_FOLDER"])
+            debug_info["upload_folder_permissions"] = oct(os.stat(app.config["UPLOAD_FOLDER"]).st_mode)[-3:]
+        
+        # Test write capability
+        test_file = os.path.join(app.config.get("UPLOAD_FOLDER", "/tmp"), "test_write.txt")
+        try:
+            with open(test_file, 'w') as f:
+                f.write("test")
+            debug_info["write_test"] = "SUCCESS"
+            if os.path.exists(test_file):
+                os.remove(test_file)
+        except Exception as e:
+            debug_info["write_test"] = f"FAILED: {e}"
+        
+        return f"<pre>{str(debug_info)}</pre>"
+        
+    except Exception as e:
+        return f"Debug error: {e}"
 
 @app.route("/static/<path:filename>")
 def static_files(filename):
@@ -356,18 +408,34 @@ def add_board():
                     print(f"🖼️ Processing front image: {front_image.filename}")
                     print(f"📁 Upload folder: {app.config['UPLOAD_FOLDER']}")
                     print(f"📁 Upload folder exists: {os.path.exists(app.config['UPLOAD_FOLDER'])}")
+                    print(f"📝 Upload folder writable: {os.access(app.config['UPLOAD_FOLDER'], os.W_OK)}")
+                    print(f"📊 Image content type: {front_image.content_type}")
+                    print(f"📏 Image content length: {front_image.content_length}")
+                    
+                    # Ensure upload directory exists
+                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
                     
                     front_filename = generate_unique_filename(front_image.filename, "front")
                     upload_path = os.path.join(app.config["UPLOAD_FOLDER"], front_filename)
                     
                     print(f"💾 Saving to: {upload_path}")
+                    print(f"📂 Directory contents before save: {os.listdir(app.config['UPLOAD_FOLDER'])}")
+                    
+                    # Save the file
                     front_image.save(upload_path)
-                    print(f"✅ Front image saved successfully: {upload_path}")
+                    
+                    print(f"📂 Directory contents after save: {os.listdir(app.config['UPLOAD_FOLDER'])}")
                     print(f"📄 File exists after save: {os.path.exists(upload_path)}")
                     
                     if os.path.exists(upload_path):
                         file_size = os.path.getsize(upload_path)
+                        file_perms = oct(os.stat(upload_path).st_mode)[-3:]
                         print(f"📊 File size: {file_size} bytes")
+                        print(f"🔐 File permissions: {file_perms}")
+                        print(f"✅ Front image saved successfully: {upload_path}")
+                    else:
+                        print(f"❌ File does not exist after save attempt")
+                        front_filename = None
                     
                 except Exception as e:
                     print(f"❌ Error saving front image: {e}")
@@ -565,8 +633,34 @@ def add_player():
         photo_filename = None
         
         if photo and photo.filename:
-            photo_filename = generate_unique_filename(photo.filename, "player")
-            photo.save(os.path.join(app.config["UPLOAD_FOLDER"], photo_filename))
+            try:
+                print(f"👤 Processing player photo: {photo.filename}")
+                print(f"📁 Upload folder: {app.config['UPLOAD_FOLDER']}")
+                print(f"📊 Photo content type: {photo.content_type}")
+                
+                # Ensure upload directory exists
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                
+                photo_filename = generate_unique_filename(photo.filename, "player")
+                upload_path = os.path.join(app.config["UPLOAD_FOLDER"], photo_filename)
+                
+                print(f"💾 Saving player photo to: {upload_path}")
+                photo.save(upload_path)
+                
+                print(f"📄 Player photo exists after save: {os.path.exists(upload_path)}")
+                if os.path.exists(upload_path):
+                    file_size = os.path.getsize(upload_path)
+                    print(f"📊 Player photo size: {file_size} bytes")
+                    print(f"✅ Player photo saved successfully")
+                else:
+                    print(f"❌ Player photo does not exist after save")
+                    photo_filename = None
+                    
+            except Exception as e:
+                print(f"❌ Error saving player photo: {e}")
+                import traceback
+                print(f"📍 Full traceback: {traceback.format_exc()}")
+                photo_filename = None
         
         execute_query("INSERT INTO players (first_name, last_name, photo) VALUES (?, ?, ?)", 
                      [first_name, last_name, photo_filename])
@@ -651,13 +745,37 @@ def edit_player(player_id):
             photo_filename = current_photo  # Keep existing photo by default
             
             if photo and photo.filename:
-                # Delete old photo if it exists
-                if current_photo:
-                    safe_delete_file(current_photo)
-                
-                # Save new photo
-                photo_filename = generate_unique_filename(photo.filename, "player")
-                photo.save(os.path.join(app.config["UPLOAD_FOLDER"], photo_filename))
+                try:
+                    print(f"👤 Updating player photo: {photo.filename}")
+                    # Delete old photo if it exists
+                    if current_photo:
+                        print(f"🗑️ Deleting old photo: {current_photo}")
+                        safe_delete_file(current_photo)
+                    
+                    # Ensure upload directory exists
+                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                    
+                    # Save new photo
+                    photo_filename = generate_unique_filename(photo.filename, "player")
+                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], photo_filename)
+                    
+                    print(f"💾 Saving updated player photo to: {upload_path}")
+                    photo.save(upload_path)
+                    
+                    print(f"📄 Updated photo exists after save: {os.path.exists(upload_path)}")
+                    if os.path.exists(upload_path):
+                        file_size = os.path.getsize(upload_path)
+                        print(f"📊 Updated photo size: {file_size} bytes")
+                        print(f"✅ Player photo updated successfully")
+                    else:
+                        print(f"❌ Updated photo does not exist after save")
+                        photo_filename = current_photo  # Revert to old photo
+                        
+                except Exception as e:
+                    print(f"❌ Error updating player photo: {e}")
+                    import traceback
+                    print(f"📍 Full traceback: {traceback.format_exc()}")
+                    photo_filename = current_photo  # Revert to old photo
             
             execute_query("""
                 UPDATE players 

@@ -54,12 +54,12 @@
              data-gifted-from="{{ board.gifted_from or '' }}">
           {% if board.image_front %}
             <div class="h-48 overflow-hidden rounded-t">
-              <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+              <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
                    alt="Board {{ board.roman_number }}" class="w-full h-full object-cover">
             </div>
           {% elif board.image_back %}
             <div class="h-48 overflow-hidden rounded-t">
-              <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+              <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
                    alt="Board {{ board.roman_number }}" class="w-full h-full object-cover">
             </div>
           {% else %}
@@ -125,10 +125,10 @@
                   data-gifted-from="{{ board.gifted_from or '' }}">
                 <td class="p-3">
                   {% if board.image_front %}
-                    <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+                    <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
                          alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded">
                   {% elif board.image_back %}
-                    <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+                    <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
                          alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded">
                   {% else %}
                     <div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
