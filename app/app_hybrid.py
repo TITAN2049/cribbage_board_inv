@@ -22,7 +22,13 @@ app.secret_key = os.environ.get('SECRET_KEY', 'cribbage_board_collection_secret_
 if IS_RAILWAY:
     # On Railway, use temp storage (files will be lost on redeploy)
     app.config["UPLOAD_FOLDER"] = "/tmp/uploads"
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    try:
+        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+        print(f"✅ Upload directory created/verified: {app.config['UPLOAD_FOLDER']}")
+        print(f"📁 Directory exists: {os.path.exists(app.config['UPLOAD_FOLDER'])}")
+        print(f"📝 Directory writable: {os.access(app.config['UPLOAD_FOLDER'], os.W_OK)}")
+    except Exception as e:
+        print(f"❌ Error creating upload directory: {e}")
 else:
     # Local development - use data directory
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,6 +37,132 @@ else:
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(uploads_dir, exist_ok=True)
     app.config["UPLOAD_FOLDER"] = uploads_dir
+    print(f"✅ Local upload directory: {app.config['UPLOAD_FOLDER']}")
+
+def init_database():
+    """Initialize database tables on startup"""
+    if IS_RAILWAY:
+        # PostgreSQL table creation
+        postgres_schema = """
+        CREATE TABLE IF NOT EXISTS wood_types (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) UNIQUE NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS material_types (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) UNIQUE NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS boards (
+          id SERIAL PRIMARY KEY,
+          date VARCHAR(255),
+          roman_number VARCHAR(255),
+          description TEXT,
+          wood_type VARCHAR(255),
+          material_type VARCHAR(255),
+          image_front VARCHAR(255),
+          image_back VARCHAR(255),
+          is_gift INTEGER DEFAULT 0,
+          gifted_to VARCHAR(255),
+          gifted_from VARCHAR(255),
+          in_collection INTEGER DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS players (
+          id SERIAL PRIMARY KEY,
+          first_name VARCHAR(255),
+          last_name VARCHAR(255),
+          photo VARCHAR(255),
+          date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS games (
+          id SERIAL PRIMARY KEY,
+          board_id INTEGER,
+          winner_id INTEGER,
+          loser_id INTEGER,
+          winner_score INTEGER DEFAULT 121,
+          loser_score INTEGER DEFAULT 0,
+          is_skunk INTEGER DEFAULT 0,
+          is_double_skunk INTEGER DEFAULT 0,
+          date_played VARCHAR(255) DEFAULT CURRENT_DATE::TEXT,
+          FOREIGN KEY (board_id) REFERENCES boards(id),
+          FOREIGN KEY (winner_id) REFERENCES players(id),
+          FOREIGN KEY (loser_id) REFERENCES players(id)
+        );
+        """
+        
+        try:
+            # Execute each CREATE TABLE statement separately
+            statements = [stmt.strip() for stmt in postgres_schema.split(';') if stmt.strip()]
+            for statement in statements:
+                if statement:
+                    execute_query(statement)
+            print("✅ PostgreSQL tables initialized successfully")
+        except Exception as e:
+            print(f"❌ Error initializing PostgreSQL tables: {e}")
+    else:
+        # SQLite table creation (local development)
+        sqlite_schema = """
+        CREATE TABLE IF NOT EXISTS wood_types (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS material_types (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS boards (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT,
+          roman_number TEXT,
+          description TEXT,
+          wood_type TEXT,
+          material_type TEXT,
+          image_front TEXT,
+          image_back TEXT,
+          is_gift INTEGER DEFAULT 0,
+          gifted_to TEXT,
+          gifted_from TEXT,
+          in_collection INTEGER DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS players (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          first_name TEXT,
+          last_name TEXT,
+          photo TEXT,
+          date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS games (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          board_id INTEGER,
+          winner_id INTEGER,
+          loser_id INTEGER,
+          winner_score INTEGER DEFAULT 121,
+          loser_score INTEGER DEFAULT 0,
+          is_skunk INTEGER DEFAULT 0,
+          is_double_skunk INTEGER DEFAULT 0,
+          date_played TEXT DEFAULT (DATE('now')),
+          FOREIGN KEY (board_id) REFERENCES boards(id),
+          FOREIGN KEY (winner_id) REFERENCES players(id),
+          FOREIGN KEY (loser_id) REFERENCES players(id)
+        );
+        """
+        
+        try:
+            # Execute each CREATE TABLE statement separately
+            statements = [stmt.strip() for stmt in sqlite_schema.split(';') if stmt.strip()]
+            for statement in statements:
+                if statement:
+                    execute_query(statement)
+            print("✅ SQLite tables initialized successfully")
+        except Exception as e:
+            print(f"❌ Error initializing SQLite tables: {e}")
 
 def get_db():
     """Get database connection - PostgreSQL on Railway, SQLite locally"""
@@ -156,6 +288,12 @@ def static_files(filename):
         from flask import abort
         abort(404)
 
+# Initialize database tables when the app starts
+try:
+    init_database()
+except Exception as e:
+    print(f"Warning: Database initialization failed: {e}")
+
 @app.route("/")
 def index():
     try:
@@ -181,6 +319,9 @@ def board_detail(board_id):
 def add_board():
     if request.method == "POST":
         try:
+            print("🆕 Adding new board...")
+            print(f"📋 Form data received: {dict(request.form)}")
+            
             # Get form data
             date = request.form.get("date", "")
             roman_number = request.form.get("roman_number", "")
@@ -192,7 +333,9 @@ def add_board():
             gifted_from = request.form.get("gifted_from", "")
             in_collection = int(request.form.get("in_collection", "1"))  # Default to 1 (in collection)
             
-                        # Handle "Other" options with custom input (support both naming conventions)
+            print(f"📝 Processed form data: date={date}, roman_number={roman_number}, is_gift={is_gift}, in_collection={in_collection}")
+            
+            # Handle "Other" options with custom input (support both naming conventions)
             wood_type_other = request.form.get("wood_type_other", "") or request.form.get("custom_wood_type", "")
             if wood_type == "Other" and wood_type_other.strip():
                 wood_type = wood_type_other.strip()
@@ -210,36 +353,71 @@ def add_board():
             
             if front_image and front_image.filename and front_image.filename.strip():
                 try:
+                    print(f"🖼️ Processing front image: {front_image.filename}")
+                    print(f"📁 Upload folder: {app.config['UPLOAD_FOLDER']}")
+                    print(f"📁 Upload folder exists: {os.path.exists(app.config['UPLOAD_FOLDER'])}")
+                    
                     front_filename = generate_unique_filename(front_image.filename, "front")
                     upload_path = os.path.join(app.config["UPLOAD_FOLDER"], front_filename)
+                    
+                    print(f"💾 Saving to: {upload_path}")
                     front_image.save(upload_path)
-                    print(f"Front image saved: {upload_path}")
+                    print(f"✅ Front image saved successfully: {upload_path}")
+                    print(f"📄 File exists after save: {os.path.exists(upload_path)}")
+                    
+                    if os.path.exists(upload_path):
+                        file_size = os.path.getsize(upload_path)
+                        print(f"📊 File size: {file_size} bytes")
+                    
                 except Exception as e:
-                    print(f"Error saving front image: {e}")
+                    print(f"❌ Error saving front image: {e}")
+                    print(f"🔍 Exception type: {type(e)}")
+                    import traceback
+                    print(f"📍 Full traceback: {traceback.format_exc()}")
                     front_filename = None
             
             if back_image and back_image.filename and back_image.filename.strip():
                 try:
+                    print(f"🖼️ Processing back image: {back_image.filename}")
                     back_filename = generate_unique_filename(back_image.filename, "back")
                     upload_path = os.path.join(app.config["UPLOAD_FOLDER"], back_filename)
+                    
+                    print(f"💾 Saving to: {upload_path}")
                     back_image.save(upload_path)
-                    print(f"Back image saved: {upload_path}")
+                    print(f"✅ Back image saved successfully: {upload_path}")
+                    print(f"📄 File exists after save: {os.path.exists(upload_path)}")
+                    
+                    if os.path.exists(upload_path):
+                        file_size = os.path.getsize(upload_path)
+                        print(f"📊 File size: {file_size} bytes")
+                    
                 except Exception as e:
-                    print(f"Error saving back image: {e}")
+                    print(f"❌ Error saving back image: {e}")
+                    print(f"🔍 Exception type: {type(e)}")
+                    import traceback
+                    print(f"📍 Full traceback: {traceback.format_exc()}")
                     back_filename = None
             
             # Insert into database
-            execute_query("""
+            print(f"💾 Inserting board into database...")
+            print(f"📊 Values: [{date}, {roman_number}, {description}, {wood_type}, {material_type}, {front_filename}, {back_filename}, {is_gift}, {gifted_to}, {gifted_from}, {in_collection}]")
+            
+            result = execute_query("""
                 INSERT INTO boards (date, roman_number, description, wood_type, material_type, 
                                   image_front, image_back, is_gift, gifted_to, gifted_from, in_collection)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [date, roman_number, description, wood_type, material_type, 
                   front_filename, back_filename, is_gift, gifted_to, gifted_from, in_collection])
             
+            print(f"✅ Board inserted successfully with ID: {result}")
             flash("Board added successfully!", "success")
             return redirect(url_for("index"))
             
         except Exception as e:
+            print(f"❌ Error adding board: {e}")
+            print(f"🔍 Exception type: {type(e)}")
+            import traceback
+            print(f"📍 Full traceback: {traceback.format_exc()}")
             flash(f"Error adding board: {e}", "error")
     
     return render_template("add_board.html")
@@ -259,6 +437,9 @@ def edit_board(board_id):
     
     else:  # POST - update board
         try:
+            print(f"✏️ Editing board ID: {board_id}")
+            print(f"📋 Form data received: {dict(request.form)}")
+            
             # Get form data
             date = request.form.get("date", "")
             roman_number = request.form.get("roman_number", "")
@@ -300,10 +481,24 @@ def edit_board(board_id):
             
             if back_image and back_image.filename and back_image.filename.strip():
                 try:
+                    print(f"🖼️ Processing back image for edit: {back_image.filename}")
                     back_filename = generate_unique_filename(back_image.filename, "back")
                     upload_path = os.path.join(app.config["UPLOAD_FOLDER"], back_filename)
+                    
+                    print(f"💾 Saving to: {upload_path}")
                     back_image.save(upload_path)
-                    print(f"Back image updated: {upload_path}")
+                    print(f"✅ Back image updated successfully: {upload_path}")
+                    print(f"📄 File exists after save: {os.path.exists(upload_path)}")
+                    
+                    if os.path.exists(upload_path):
+                        file_size = os.path.getsize(upload_path)
+                        print(f"📊 File size: {file_size} bytes")
+                    
+                except Exception as e:
+                    print(f"❌ Error updating back image: {e}")
+                    print(f"🔍 Exception type: {type(e)}")
+                    import traceback
+                    print(f"📍 Full traceback: {traceback.format_exc()}")
                 except Exception as e:
                     print(f"Error updating back image: {e}")
             
@@ -326,17 +521,26 @@ def edit_board(board_id):
 @app.route("/board/<int:board_id>/delete", methods=["POST"])
 def delete_board(board_id):
     try:
+        print(f"🗑️ Deleting board ID: {board_id}")
+        
         # Get board info for cleanup
         board = execute_query("SELECT image_front, image_back FROM boards WHERE id = ?", [board_id], fetch=True)
         
         if board:
+            print(f"✅ Board found, proceeding with deletion")
             # Delete the board from database
             execute_query("DELETE FROM boards WHERE id = ?", [board_id])
+            print(f"✅ Board deleted successfully from database")
             flash("Board deleted successfully!", "success")
         else:
+            print(f"❌ Board not found in database")
             flash("Board not found", "error")
             
     except Exception as e:
+        print(f"❌ Error deleting board: {e}")
+        print(f"🔍 Exception type: {type(e)}")
+        import traceback
+        print(f"📍 Full traceback: {traceback.format_exc()}")
         flash(f"Error deleting board: {e}", "error")
     
     return redirect(url_for("index"))
@@ -418,8 +622,8 @@ def player_detail(player_id):
             'avg_winning_score': 121.0,
             'current_streak': 'N/A',
             'recent_form': 'N/A',
-            'favorite_opponent': 'N/A',
-            'nemesis': 'N/A'
+            'favorite_opponent': None,  # Changed from 'N/A' to None
+            'nemesis': None  # Changed from 'N/A' to None
         }
         
         return render_template("player_detail.html", player=player[0], stats=stats, recent_games=games)
@@ -613,6 +817,9 @@ def stats():
                              player_nemesis={})
 
 if __name__ == "__main__":
+    # Initialize database tables on startup
+    init_database()
+    
     if IS_RAILWAY:
         print("🐘 Running on Railway with PostgreSQL")
         port = int(os.environ.get('PORT', 5000))
