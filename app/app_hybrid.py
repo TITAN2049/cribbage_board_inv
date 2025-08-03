@@ -283,8 +283,24 @@ def uploaded_file(filename):
             file_size = os.path.getsize(file_path)
             print(f"📊 File size: {file_size} bytes")
         
-        from flask import send_from_directory
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+        from flask import send_from_directory, send_file
+        
+        # Check if file exists
+        if os.path.exists(file_path):
+            return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+        else:
+            print(f"⚠️ File not found, returning placeholder")
+            # Return a 1x1 transparent PNG as placeholder
+            import io
+            import base64
+            
+            # 1x1 transparent PNG in base64
+            transparent_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+            return send_file(
+                io.BytesIO(transparent_png),
+                mimetype='image/png',
+                as_attachment=False
+            )
     except Exception as e:
         print(f"❌ Error serving file {filename}: {e}")
         print(f"🔍 Exception type: {type(e)}")
