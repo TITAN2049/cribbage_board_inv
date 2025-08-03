@@ -143,6 +143,19 @@ def uploaded_file(filename):
         from flask import abort
         abort(404)
 
+@app.route("/static/<path:filename>")
+def static_files(filename):
+    """Serve static files"""
+    try:
+        from flask import send_from_directory
+        import os
+        static_dir = os.path.join(os.path.dirname(__file__), 'static')
+        return send_from_directory(static_dir, filename)
+    except Exception as e:
+        print(f"Error serving static file {filename}: {e}")
+        from flask import abort
+        abort(404)
+
 @app.route("/")
 def index():
     try:
@@ -210,6 +223,84 @@ def add_board():
     
     return render_template("add_board.html")
 
+@app.route("/board/<int:board_id>/edit", methods=["GET", "POST"])
+def edit_board(board_id):
+    if request.method == "GET":
+        try:
+            board = execute_query("SELECT * FROM boards WHERE id = ?", [board_id], fetch=True)
+            if not board:
+                flash("Board not found", "error")
+                return redirect(url_for("index"))
+            return render_template("edit_board.html", board=board[0])
+        except Exception as e:
+            flash(f"Error loading board: {e}", "error")
+            return redirect(url_for("index"))
+    
+    else:  # POST - update board
+        try:
+            # Get form data
+            date = request.form.get("date", "")
+            roman_number = request.form.get("roman_number", "")
+            description = request.form.get("description", "")
+            wood_type = request.form.get("wood_type", "")
+            material_type = request.form.get("material_type", "")
+            is_gift = 1 if request.form.get("is_gift") == "on" else 0
+            gifted_to = request.form.get("gifted_to", "")
+            gifted_from = request.form.get("gifted_from", "")
+            in_collection = 1 if request.form.get("in_collection") == "on" else 0
+            
+            # Handle file uploads
+            front_image = request.files.get("image_front")
+            back_image = request.files.get("image_back")
+            
+            # Get current filenames
+            current_board = execute_query("SELECT image_front, image_back FROM boards WHERE id = ?", [board_id], fetch=True)
+            front_filename = current_board[0]['image_front'] if current_board else None
+            back_filename = current_board[0]['image_back'] if current_board else None
+            
+            # Update filenames if new files uploaded
+            if front_image and front_image.filename:
+                front_filename = generate_unique_filename(front_image.filename, "front")
+                front_image.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
+            
+            if back_image and back_image.filename:
+                back_filename = generate_unique_filename(back_image.filename, "back")
+                back_image.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
+            
+            # Update database
+            execute_query("""
+                UPDATE boards SET date = ?, roman_number = ?, description = ?, wood_type = ?, 
+                                material_type = ?, image_front = ?, image_back = ?, is_gift = ?, 
+                                gifted_to = ?, gifted_from = ?, in_collection = ?
+                WHERE id = ?
+            """, [date, roman_number, description, wood_type, material_type, 
+                  front_filename, back_filename, is_gift, gifted_to, gifted_from, in_collection, board_id])
+            
+            flash("Board updated successfully!", "success")
+            return redirect(url_for("board_detail", board_id=board_id))
+            
+        except Exception as e:
+            flash(f"Error updating board: {e}", "error")
+            return redirect(url_for("edit_board", board_id=board_id))
+
+@app.route("/board/<int:board_id>/delete", methods=["POST"])
+def delete_board(board_id):
+    try:
+        # Get board info for cleanup
+        board = execute_query("SELECT image_front, image_back FROM boards WHERE id = ?", [board_id], fetch=True)
+        
+        if board:
+            # Delete the board from database
+            execute_query("DELETE FROM boards WHERE id = ?", [board_id])
+            flash("Board deleted successfully!", "success")
+        else:
+            flash("Board not found", "error")
+            
+    except Exception as e:
+        flash(f"Error deleting board: {e}", "error")
+    
+    return redirect(url_for("index"))
+
 @app.route("/players")
 def players():
     try:
@@ -250,18 +341,48 @@ def player_detail(player_id):
             flash("Player not found!", "error")
             return redirect(url_for("players"))
         
-        # Get player's game statistics
-        stats = execute_query("""
-            SELECT 
-                COUNT(CASE WHEN winner_id = ? THEN 1 END) as wins,
-                COUNT(CASE WHEN loser_id = ? THEN 1 END) as losses,
-                COUNT(CASE WHEN winner_id = ? AND is_skunk = 1 THEN 1 END) as skunks_given,
-                COUNT(CASE WHEN loser_id = ? AND is_skunk = 1 THEN 1 END) as skunks_received
-            FROM games 
-            WHERE winner_id = ? OR loser_id = ?
-        """, [player_id, player_id, player_id, player_id, player_id, player_id], fetch=True)
+        # Get all games involving this player
+        games = execute_query("""
+            SELECT g.*, 
+                   pw.first_name || ' ' || pw.last_name as winner_name,
+                   pl.first_name || ' ' || pl.last_name as loser_name,
+                   b.roman_number
+            FROM games g
+            LEFT JOIN players pw ON g.winner_id = pw.id
+            LEFT JOIN players pl ON g.loser_id = pl.id
+            LEFT JOIN boards b ON g.board_id = b.id
+            WHERE g.winner_id = ? OR g.loser_id = ?
+            ORDER BY g.date_played DESC
+        """, [player_id, player_id], fetch=True)
         
-        return render_template("player_detail.html", player=player[0], stats=stats[0] if stats else None)
+        # Calculate comprehensive stats
+        wins = len([g for g in games if g['winner_id'] == player_id])
+        losses = len([g for g in games if g['loser_id'] == player_id])
+        total_games = wins + losses
+        win_percentage = (wins / total_games * 100) if total_games > 0 else 0
+        
+        skunks_given = len([g for g in games if g['winner_id'] == player_id and (g['is_skunk'] or g['is_double_skunk'])])
+        skunks_received = len([g for g in games if g['loser_id'] == player_id and (g['is_skunk'] or g['is_double_skunk'])])
+        double_skunks_given = len([g for g in games if g['winner_id'] == player_id and g['is_double_skunk']])
+        double_skunks_received = len([g for g in games if g['loser_id'] == player_id and g['is_double_skunk']])
+        
+        stats = {
+            'wins': wins,
+            'losses': losses,
+            'total_games': total_games,
+            'win_percentage': win_percentage,
+            'skunks_given': skunks_given,
+            'skunks_received': skunks_received,
+            'double_skunks_given': double_skunks_given,
+            'double_skunks_received': double_skunks_received,
+            'avg_winning_score': 121.0,
+            'current_streak': 'N/A',
+            'recent_form': 'N/A',
+            'favorite_opponent': 'N/A',
+            'nemesis': 'N/A'
+        }
+        
+        return render_template("player_detail.html", player=player[0], stats=stats, recent_games=games)
     except Exception as e:
         flash(f"Database error: {e}", "error")
         return redirect(url_for("players"))
@@ -399,34 +520,57 @@ def add_game():
 @app.route("/stats")
 def stats():
     try:
-        # Player statistics
-        player_stats = execute_query("""
-            SELECT p.first_name || ' ' || p.last_name as player_name,
-                   COUNT(CASE WHEN g.winner_id = p.id THEN 1 END) as wins,
-                   COUNT(CASE WHEN g.loser_id = p.id THEN 1 END) as losses,
-                   COUNT(*) as total_games
-            FROM players p
-            LEFT JOIN games g ON (g.winner_id = p.id OR g.loser_id = p.id)
-            GROUP BY p.id, p.first_name, p.last_name
-            HAVING COUNT(*) > 0
-            ORDER BY wins DESC
-        """, fetch=True)
+        # Get basic data for the template
+        players = execute_query("SELECT * FROM players ORDER BY first_name, last_name", fetch=True)
+        boards = execute_query("SELECT * FROM boards ORDER BY roman_number", fetch=True)
+        games = execute_query("SELECT * FROM games ORDER BY date_played DESC", fetch=True)
         
-        # Board usage statistics  
-        board_stats = execute_query("""
-            SELECT b.roman_number, b.wood_type,
-                   COUNT(g.id) as games_played
-            FROM boards b
-            LEFT JOIN games g ON g.board_id = b.id
-            GROUP BY b.id, b.roman_number, b.wood_type
-            ORDER BY games_played DESC
-        """, fetch=True)
+        # Simple leaderboard - basic win/loss stats
+        leaderboard = []
+        for player in players:
+            wins = len([g for g in games if g['winner_id'] == player['id']])
+            losses = len([g for g in games if g['loser_id'] == player['id']])
+            total_games = wins + losses
+            
+            if total_games > 0:
+                win_percentage = (wins / total_games) * 100
+                player_stats = {
+                    'id': player['id'],
+                    'first_name': player['first_name'],
+                    'last_name': player['last_name'],
+                    'photo': player.get('photo'),
+                    'wins': wins,
+                    'losses': losses,
+                    'total_games': total_games,
+                    'win_percentage': win_percentage,
+                    'skunks_given': len([g for g in games if g['winner_id'] == player['id'] and (g['is_skunk'] or g['is_double_skunk'])]),
+                    'skunks_received': len([g for g in games if g['loser_id'] == player['id'] and (g['is_skunk'] or g['is_double_skunk'])]),
+                    'double_skunks_given': len([g for g in games if g['winner_id'] == player['id'] and g['is_double_skunk']]),
+                    'double_skunks_received': len([g for g in games if g['loser_id'] == player['id'] and g['is_double_skunk']]),
+                    'avg_winning_score': 121.0,  # Default for now
+                    'current_streak': 'N/A',
+                    'recent_form': 'N/A'
+                }
+                leaderboard.append(player_stats)
         
-        return render_template("stats.html", player_stats=player_stats, board_stats=board_stats)
+        # Sort by win percentage
+        leaderboard.sort(key=lambda x: x['win_percentage'], reverse=True)
+        
+        return render_template("stats.html", 
+                             players=players, 
+                             boards=boards, 
+                             games=games,
+                             leaderboard=leaderboard,
+                             player_nemesis={})
         
     except Exception as e:
         flash(f"Database error: {e}", "error")
-        return render_template("stats.html", player_stats=[], board_stats=[])
+        return render_template("stats.html", 
+                             players=[], 
+                             boards=[], 
+                             games=[],
+                             leaderboard=[],
+                             player_nemesis={})
 
 if __name__ == "__main__":
     if IS_RAILWAY:
