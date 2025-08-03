@@ -103,9 +103,8 @@ def safe_delete_file(filename):
         file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-            print(f"Deleted file: {filename}")
     except Exception as e:
-        print(f"Error deleting file {filename}: {e}")
+        pass  # Silently handle file deletion errors
 
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
@@ -389,11 +388,6 @@ def board_detail(board_id):
 def add_board():
     if request.method == "POST":
         try:
-            # Debug: Print all form data
-            print(f"DEBUG - Add Board Form data received:")
-            print(f"  Form keys: {list(request.form.keys())}")
-            print(f"  Files keys: {list(request.files.keys())}")
-            
             # Get form data
             date = request.form.get("date", "")
             roman_number = request.form.get("roman_number", "")
@@ -421,12 +415,6 @@ def add_board():
                 except:
                     pass  # Ignore if table doesn't exist or other errors
             
-            print(f"  Date: '{date}'")
-            print(f"  Roman Number: '{roman_number}'")
-            print(f"  Description: '{description}'")
-            print(f"  Wood Type: '{wood_type}'")
-            print(f"  Material Type: '{material_type}'")
-            
             # Validate required field
             if not roman_number:
                 flash("Roman Number is required!", "error")
@@ -438,11 +426,6 @@ def add_board():
             gifted_to = request.form.get("gifted_to", "") if is_gift else ""
             gifted_from = request.form.get("gifted_from", "") if is_gift else ""
             
-            print(f"  In Collection: {in_collection}")
-            print(f"  Is Gift: {is_gift}")
-            print(f"  Gifted To: '{gifted_to}'")
-            print(f"  Gifted From: '{gifted_from}'")
-            
             # Handle file uploads
             front_view = request.files.get("front_view")
             back_view = request.files.get("back_view")
@@ -453,19 +436,15 @@ def add_board():
             if front_view and front_view.filename:
                 front_filename = generate_unique_filename(front_view.filename, "front")
                 front_view.save(os.path.join(app.config["UPLOAD_FOLDER"], front_filename))
-                print(f"  Front image saved: {front_filename}")
             
             if back_view and back_view.filename:
                 back_filename = generate_unique_filename(back_view.filename, "back")
                 back_view.save(os.path.join(app.config["UPLOAD_FOLDER"], back_filename))
-                print(f"  Back image saved: {back_filename}")
             
             # Insert into database
             insert_params = [date, roman_number, description, wood_type, material_type,
                            front_filename, back_filename,
                            in_collection, is_gift, gifted_to, gifted_from]
-            
-            print(f"  Insert parameters: {insert_params}")
             
             execute_query("""
                 INSERT INTO boards (date, roman_number, description, wood_type, material_type,
@@ -836,10 +815,6 @@ def games():
 @app.route("/add_game", methods=["POST"])
 def add_game():
     try:
-        # Debug: Print all form data
-        print(f"DEBUG - Add Game Form data received:")
-        print(f"  Form keys: {list(request.form.keys())}")
-        
         winner_id = request.form["winner_id"]
         loser_id = request.form["loser_id"]
         board_id = request.form.get("board_id") or None  # Optional field
@@ -848,21 +823,12 @@ def add_game():
         loser_score = request.form.get("loser_score") or 0
         notes = request.form.get("notes", "")
         
-        print(f"  Winner ID: '{winner_id}'")
-        print(f"  Loser ID: '{loser_id}'")
-        print(f"  Board ID: '{board_id}'")
-        print(f"  Date Played: '{date_played}'")
-        print(f"  Winner Score: '{winner_score}'")
-        print(f"  Loser Score: '{loser_score}'")
-        print(f"  Notes: '{notes}'")
-        
         # Determine skunk status based on scores
         loser_score_int = int(loser_score)
         is_double_skunk = 1 if loser_score_int < 61 else 0
         is_skunk = 1 if loser_score_int < 91 and not is_double_skunk else 0
         
         insert_params = [winner_id, loser_id, board_id, winner_score, loser_score, date_played, is_skunk, is_double_skunk, notes]
-        print(f"  Insert parameters: {insert_params}")
         
         execute_query("""
             INSERT INTO games (winner_id, loser_id, board_id, winner_score, loser_score, date_played, is_skunk, is_double_skunk, notes)
@@ -872,7 +838,6 @@ def add_game():
         flash("Game recorded successfully!", "success")
         
     except Exception as e:
-        print(f"Exception in add_game: {e}")
         flash(f"Error recording game: {e}", "error")
     
     return redirect(url_for("games"))
@@ -928,7 +893,6 @@ def edit_game(game_id):
             return redirect(url_for("games"))
             
     except Exception as e:
-        print(f"Exception in edit_game: {e}")
         flash(f"Error editing game: {e}", "error")
         if request.method == "GET":
             return redirect(url_for("games"))
