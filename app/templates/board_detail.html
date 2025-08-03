@@ -1,173 +1,141 @@
 {% extends "base.html" %}
+
+{% block title %}Board {{ board.roman_number or 'Unnamed' }} - Cribbage Collection{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto">
-  <!-- Back Button -->
-  <div class="mb-6">
-    <a href="/" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md">
-      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-      </svg>
-      Back to Collection
-    </a>
-  </div>
+<div class="mb-6">
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Back to Collection
+  </a>
+</div>
 
-  <!-- Board Header -->
-  <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-xl shadow-lg">
-    <h1 class="text-3xl font-bold">Board {{ board.roman_number or 'Details' }}</h1>
-    <p class="text-blue-100 mt-2">{{ board.description or 'Cribbage Board' }}</p>
-  </div>
-
-  <!-- Board Information -->
-  <div class="bg-white rounded-b-xl shadow-lg p-6 mb-6">
-    <div class="grid md:grid-cols-2 gap-6">
-      <!-- Board Details -->
-      <div class="space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Board Information</h3>
-        
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600 font-medium">Date Added:</span>
-            <span class="text-gray-800">{{ board.date }}</span>
-          </div>
-          
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600 font-medium">Collection Status:</span>
-            <span class="px-3 py-1 rounded-full text-sm font-medium {{ 'bg-green-100 text-green-800' if board.in_collection else 'bg-red-100 text-red-800' }}">
-              {{ 'In Collection' if board.in_collection else 'Not in Collection' }}
-            </span>
-          </div>
-          
-          {% if board.roman_number %}
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600 font-medium">Roman Numeral:</span>
-            <span class="text-gray-800 font-bold text-lg">{{ board.roman_number }}</span>
-          </div>
-          {% endif %}
-          
-          {% if board.wood_type %}
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600 font-medium">Wood Type:</span>
-            <span class="text-gray-800">{{ board.wood_type }}</span>
-          </div>
-          {% endif %}
-          
-          {% if board.material_type %}
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600 font-medium">Material Type:</span>
-            <span class="text-gray-800">{{ board.material_type }}</span>
-          </div>
-          {% endif %}
-        </div>
-        
-        <!-- Gift Information -->
-        {% if board.is_gift %}
-        <div class="mt-6 p-4 bg-pink-50 rounded-lg border border-pink-200">
-          <h4 class="text-md font-semibold text-pink-800 mb-3">🎁 Gift Information</h4>
-          {% if board.gifted_from %}
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-pink-600 font-medium">Gifted From:</span>
-            <span class="text-pink-800">{{ board.gifted_from }}</span>
-          </div>
-          {% endif %}
-          {% if board.gifted_to %}
-          <div class="flex justify-between items-center">
-            <span class="text-pink-600 font-medium">Gifted To:</span>
-            <span class="text-pink-800">{{ board.gifted_to }}</span>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Board Images -->
-      <div class="space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Board Images</h3>
-        
-        <div class="grid gap-4">
-          {% if board.image_front %}
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="text-sm font-medium text-gray-600 mb-2">Front View</h4>
-            <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
-                 class="w-full max-w-sm mx-auto rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" 
-                 alt="Board front view">
-          </div>
-          {% endif %}
-          
-          {% if board.image_back %}
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <h4 class="text-sm font-medium text-gray-600 mb-2">Back View</h4>
-            <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
-                 class="w-full max-w-sm mx-auto rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300" 
-                 alt="Board back view">
-          </div>
-          {% endif %}
-          
-          {% if not board.image_front and not board.image_back %}
-          <div class="bg-gray-50 p-8 rounded-lg text-center">
-            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            <p class="text-gray-500">No images available</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Games Section -->
-  <div class="bg-white rounded-xl shadow-lg p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">Games Played</h2>
-      <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-        {{ games|length }} game{{ 's' if games|length != 1 else '' }}
-      </span>
+<div class="card p-6 mb-6">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">Board {{ board.roman_number or 'Unnamed' }}</h1>
+      {% if board.date %}
+        <p class="text-lg text-gray-600 mb-2">Date: {{ board.date }}</p>
+      {% endif %}
+      {% if board.description %}
+        <p class="text-gray-700">{{ board.description }}</p>
+      {% endif %}
     </div>
     
-    {% if games %}
-    <div class="space-y-3">
-      {% for game in games %}
-      <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow duration-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="text-sm text-gray-500">{{ game.date_played }}</div>
-            <div class="text-gray-800">
-              <span class="font-semibold text-green-600">{{ game.winner_name }}</span>
-              <span class="mx-2 text-gray-400">defeated</span>
-              <span class="font-medium text-red-600">{{ game.loser_name }}</span>
-            </div>
-          </div>
-          <div class="flex items-center space-x-2">
-            {% if game.is_skunk %}
-            <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded">Skunk</span>
-            {% endif %}
-            {% if game.is_double_skunk %}
-            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded">Double Skunk</span>
-            {% endif %}
-            <form method="POST" action="{{ url_for('delete_game', game_id=game.id) }}" class="inline" 
-                  onsubmit="return confirm('Are you sure you want to delete this game? This action cannot be undone.')">
-              <button type="submit" 
-                      class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors duration-200"
-                      title="Delete game">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-              </button>
-            </form>
-          </div>
-        </div>
+    <div class="flex gap-2">
+      <a href="{{ url_for('edit_board', board_id=board.id) }}" class="btn btn-primary">
+        <i class="fas fa-edit"></i>
+        Edit
+      </a>
+      <button class="btn btn-danger" onclick="confirmDelete('Board {{ board.roman_number or 'Unnamed' }}', '{{ url_for("delete_board", board_id=board.id) }}')">
+        <i class="fas fa-trash"></i>
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Collection Status -->
+  <div class="mb-6">
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <span class="text-gray-500 font-medium">Collection Status:</span>
+        <span class="ml-2">
+          {% if board.in_collection == 1 %}
+            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">In Collection</span>
+          {% else %}
+            <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-sm">Not in Collection</span>
+          {% endif %}
+        </span>
       </div>
-      {% endfor %}
+      
+      {% if board.date %}
+        <div>
+          <span class="text-gray-500 font-medium">Date:</span>
+          <span class="text-gray-800 ml-2">{{ board.date }}</span>
+        </div>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="text-center py-12">
-      <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-      </svg>
-      <p class="text-gray-500 text-lg">No games played on this board yet</p>
-      <p class="text-gray-400 text-sm mt-2">Games will appear here once they're recorded</p>
-    </div>
-    {% endif %}
   </div>
 </div>
+
+<!-- Images -->
+{% if board.image_front or board.image_back %}
+  <div class="card p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Images</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {% if board.image_front %}
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Front</h3>
+          <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+               alt="Board {{ board.roman_number or 'Unnamed' }} - Front" class="w-full rounded-lg shadow-sm">
+        </div>
+      {% endif %}
+      
+      {% if board.image_back %}
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-2">Back</h3>
+          <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+               alt="Board {{ board.roman_number or 'Unnamed' }} - Back" class="w-full rounded-lg shadow-sm">
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- Material Information -->
+{% if board.material_type or board.wood_type %}
+  <div class="card p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Material</h2>
+    <div class="space-y-3">
+      {% if board.material_type %}
+        <div class="flex justify-between">
+          <span class="text-gray-600">Material Type:</span>
+          <span class="font-medium">{{ board.material_type }}</span>
+        </div>
+      {% endif %}
+      
+      {% if board.wood_type %}
+        <div class="flex justify-between">
+          <span class="text-gray-600">Wood Type:</span>
+          <span class="font-medium">{{ board.wood_type }}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- Gift Information -->
+{% if board.is_gift == 1 %}
+  <div class="card p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Gift Information</h2>
+    <div class="space-y-3">
+      <div class="flex justify-between">
+        <span class="text-gray-600">Is Gift:</span>
+        <span class="font-medium">Yes</span>
+      </div>
+      
+      {% if board.gifted_to %}
+        <div class="flex justify-between">
+          <span class="text-gray-600">Gifted To:</span>
+          <span class="font-medium">{{ board.gifted_to }}</span>
+        </div>
+      {% endif %}
+      
+      {% if board.gifted_from %}
+        <div class="flex justify-between">
+          <span class="text-gray-600">Gifted From:</span>
+          <span class="font-medium">{{ board.gifted_from }}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<script>
+function confirmDelete(name, url) {
+  if (confirm(`Are you sure you want to delete board "${name}"? This action cannot be undone.`)) {
+    window.location.href = url;
+  }
+}
+</script>
 {% endblock %}

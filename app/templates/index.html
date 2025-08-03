@@ -1,320 +1,490 @@
 {% extends "base.html" %}
+
+{% block title %}Cribbage Board Collection{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto">
-  <h1 class="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-    🏆 Cribbage Board Collection
-  </h1>
-
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mb-6">
-        {% for category, message in messages %}
-          <div class="alert-{{ category }} p-4 rounded-lg mb-3 {% if category == 'error' %}bg-red-100 text-red-800 border border-red-200{% else %}bg-green-100 text-green-800 border border-green-200{% endif %}">
-            <div class="flex items-center">
-              <span class="text-lg mr-2">{% if category == 'error' %}❌{% else %}✅{% endif %}</span>
-              <span>{{ message }}</span>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-
-  <!-- Add Board Button -->
-  <div class="text-center mb-8">
-    <button id="showAddForm" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
-      ✨ Add New Board
+<div class="mb-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="page-header">Board Collection</h1>
+      <p class="text-gray-600">Manage your cribbage board collection</p>
+    </div>
+    <button onclick="openModal('addBoardModal')" class="btn btn-primary">
+      <i class="fas fa-plus"></i>
+      Add Board
     </button>
   </div>
+</div>
 
-  <!-- Add Board Form (hidden by default) -->
-  <form id="addBoardForm" method="POST" action="/add_board" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-2xl p-8 mb-8 border border-gray-100" style="display: none;">
-    <div class="flex justify-between items-center mb-8">
-      <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-        🎯 Add New Board
-      </h2>
-      <button type="button" id="hideAddForm" class="text-gray-400 hover:text-gray-600 text-3xl transition-colors duration-200 hover:rotate-90 transform">×</button>
+<!-- Search and Filters -->
+<div class="card p-4 mb-6">
+  <div class="flex gap-4 items-center">
+    <div class="flex-1">
+      <input type="text" id="searchInput" placeholder="Search boards..." class="form-input">
+    </div>
+    <select id="categoryFilter" class="form-input" style="width: auto;">
+      <option value="">All Boards</option>
+      <option value="in_collection">In Collection</option>
+      <option value="not_in_collection">Not In Collection</option>
+      <option value="is_gift">Is a Gift</option>
+      <option value="gifted_to">Gave as Gift</option>
+      <option value="gifted_from">Got as Gift</option>
+    </select>
+    <div class="flex gap-2">
+      <button onclick="setView('grid')" id="gridViewBtn" class="btn btn-secondary">
+        <i class="fas fa-th-large"></i>
+      </button>
+      <button onclick="setView('list')" id="listViewBtn" class="btn btn-secondary">
+        <i class="fas fa-list"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Boards Grid/List -->
+<div id="boardsContainer">
+  {% if boards %}
+    <div id="boardsGrid" class="grid grid-cols-1 grid-cols-md-2 grid-cols-lg-3 gap-6">
+      {% for board in boards %}
+        <div class="card board-card" 
+             data-name="{{ (board.roman_number or '').lower() }}"
+             data-in-collection="{{ board.in_collection }}"
+             data-is-gift="{{ board.is_gift }}"
+             data-gifted-to="{{ board.gifted_to or '' }}"
+             data-gifted-from="{{ board.gifted_from or '' }}">
+          {% if board.image_front %}
+            <div class="h-48 overflow-hidden rounded-t">
+              <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+                   alt="Board {{ board.roman_number }}" class="w-full h-full object-cover">
+            </div>
+          {% elif board.image_back %}
+            <div class="h-48 overflow-hidden rounded-t">
+              <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+                   alt="Board {{ board.roman_number }}" class="w-full h-full object-cover">
+            </div>
+          {% else %}
+            <div class="h-48 bg-gray-50 rounded-t flex items-center justify-center">
+              <i class="fas fa-chess-board text-4xl text-gray-300"></i>
+            </div>
+          {% endif %}
+          
+          <div class="p-4">
+            <h3 class="font-semibold text-lg mb-2">
+              Board {{ board.roman_number or 'Unnamed' }}
+            </h3>
+            
+            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
+              <div><strong>Material:</strong> {{ board.material_type or 'N/A' }}</div>
+              <div><strong>Wood Type:</strong> {{ board.wood_type or 'N/A' }}</div>
+              <div><strong>Collection:</strong> {{ 'Yes' if board.in_collection == 1 else 'No' }}</div>
+              <div><strong>Gift:</strong> {{ 'Yes' if board.is_gift == 1 else 'No' }}</div>
+            </div>
+            
+            {% if board.description %}
+              <p class="text-sm text-gray-600 mb-4">{{ board.description[:100] }}{% if board.description|length > 100 %}...{% endif %}</p>
+            {% endif %}
+            
+            <div class="flex gap-2">
+              <a href="{{ url_for('board_detail', board_id=board.id) }}" class="btn btn-primary flex-1 justify-center">
+                <i class="fas fa-eye"></i>
+                View
+              </a>
+              <button onclick="editBoard({{ board.id }})" class="btn btn-secondary">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button onclick="deleteBoard({{ board.id }})" class="btn btn-danger">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
     </div>
     
-    <!-- Basic Information Section -->
-    <div class="mb-8">
-      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        📝 Basic Information
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Date Made:</label>
-          <input type="text" name="date" placeholder="mm/dd/yyyy" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Roman Numeral:</label>
-          <input type="text" name="roman" placeholder="I, II, III, etc." class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Description:</label>
-        <textarea name="desc" placeholder="Describe your beautiful cribbage board..." rows="3" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-none"></textarea>
-      </div>
-    </div>
-
-    <!-- Materials Section -->
-    <div class="mb-8">
-      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        🪵 Materials
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Material Type:</label>
-          <select name="material" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-            <option disabled selected>Select Material Type</option>
-            {% for m in material_types %}
-            <option value="{{ m.name }}">{{ m.name }}</option>
+    <!-- List View (Hidden by default) -->
+    <div id="boardsList" class="hidden">
+      <div class="card">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="p-3 text-left font-medium text-gray-700">Image</th>
+              <th class="p-3 text-left font-medium text-gray-700">Board</th>
+              <th class="p-3 text-left font-medium text-gray-700">Material</th>
+              <th class="p-3 text-left font-medium text-gray-700">Wood Type</th>
+              <th class="p-3 text-left font-medium text-gray-700">Collection</th>
+              <th class="p-3 text-left font-medium text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for board in boards %}
+              <tr class="border-t board-row" 
+                  data-name="{{ (board.roman_number or '').lower() }}"
+                  data-in-collection="{{ board.in_collection }}"
+                  data-is-gift="{{ board.is_gift }}"
+                  data-gifted-to="{{ board.gifted_to or '' }}"
+                  data-gifted-from="{{ board.gifted_from or '' }}">
+                <td class="p-3">
+                  {% if board.image_front %}
+                    <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+                         alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded">
+                  {% elif board.image_back %}
+                    <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+                         alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded">
+                  {% else %}
+                    <div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                      <i class="fas fa-chess-board text-gray-400"></i>
+                    </div>
+                  {% endif %}
+                </td>
+                <td class="p-3 font-medium">Board {{ board.roman_number or 'Unnamed' }}</td>
+                <td class="p-3 text-gray-600">{{ board.material_type or 'N/A' }}</td>
+                <td class="p-3 text-gray-600">{{ board.wood_type or 'N/A' }}</td>
+                <td class="p-3 text-gray-600">{{ 'Yes' if board.in_collection == 1 else 'No' }}</td>
+                <td class="p-3">
+                  <div class="flex gap-1">
+                    <a href="{{ url_for('board_detail', board_id=board.id) }}" class="btn btn-primary btn-sm">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <button onclick="editBoard({{ board.id }})" class="btn btn-secondary btn-sm">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteBoard({{ board.id }})" class="btn btn-danger btn-sm">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
             {% endfor %}
-          </select>
-          <input type="text" name="new_material" placeholder="Or add new material type..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200 mt-2 text-sm">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Wood Type:</label>
-          <select name="wood" class="w-full border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-            <option disabled selected>Select Wood Type</option>
-            {% for w in wood_types %}
-            <option value="{{ w.name }}">{{ w.name }}</option>
-            {% endfor %}
-          </select>
-          <input type="text" name="new_wood" placeholder="Or add new wood type..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-200 mt-2 text-sm">
-        </div>
+          </tbody>
+        </table>
       </div>
     </div>
-
-    <!-- Collection & Gift Status -->
-    <div class="mb-8">
-      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        🎁 Status & History
-      </h3>
-      
-      <div class="bg-blue-50 p-6 rounded-xl mb-4">
-        <label class="flex items-center space-x-3 cursor-pointer">
-          <input type="checkbox" name="in_collection" checked class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
-          <span class="text-lg font-medium text-gray-700">📦 This board is in my collection</span>
-        </label>
-      </div>
-      
-      <div class="bg-orange-50 p-6 rounded-xl">
-        <label class="flex items-center space-x-3 cursor-pointer mb-4">
-          <input type="checkbox" name="is_gift" id="giftCheckbox" class="w-5 h-5 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500">
-          <span class="text-lg font-medium text-gray-700">🎁 This board was a gift</span>
-        </label>
-        <div id="giftDetails" class="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50 transition-opacity duration-300">
-          <input type="text" name="gifted_to" placeholder="Gifted To (person's name)" class="w-full border-2 border-orange-200 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
-          <input type="text" name="gifted_from" placeholder="Gifted From (person's name)" class="w-full border-2 border-orange-200 p-3 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200">
-        </div>
-      </div>
-    </div>
-
-    <!-- Images Section -->
-    <div class="mb-8">
-      <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-        📸 Board Images
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors duration-200">
-          <div class="mb-4">
-            <div class="text-4xl mb-2">🖼️</div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Front Image:</label>
-          </div>
-          <input type="file" name="front" required accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200">
-        </div>
-        
-        <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors duration-200">
-          <div class="mb-4">
-            <div class="text-4xl mb-2">🔄</div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Back Image:</label>
-          </div>
-          <input type="file" name="back" required accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200">
-        </div>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="flex justify-center space-x-4 pt-6 border-t border-gray-200">
-      <button type="submit" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
-        🚀 Add Board
-      </button>
-      <button type="button" id="cancelAdd" class="bg-gradient-to-r from-gray-400 to-gray-500 text-white px-8 py-4 rounded-xl hover:from-gray-500 hover:to-gray-600 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
-        ❌ Cancel
+  {% else %}
+    <div class="text-center py-12">
+      <i class="fas fa-chess-board text-6xl text-gray-300 mb-4"></i>
+      <h3 class="text-xl font-semibold text-gray-600 mb-2">No boards in your collection</h3>
+      <p class="text-gray-500 mb-6">Start building your cribbage board collection by adding your first board.</p>
+      <button onclick="openModal('addBoardModal')" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Add Your First Board
       </button>
     </div>
-  </form>
-
-  <!-- Filter Options -->
-  <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
-    <h3 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-      🔍 Filter Collection
-    </h3>
-    <form method="GET" action="/" class="flex flex-wrap gap-4">
-      <div class="flex-1 min-w-48">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Collection Status:</label>
-        <select name="filter_collection" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-          <option value="">All Boards</option>
-          <option value="1">📦 In Collection</option>
-          <option value="0">🚫 Not In Collection</option>
-        </select>
-      </div>
-      <div class="flex-1 min-w-48">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Gift Status:</label>
-        <select name="filter_gifted" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-          <option value="">All Boards</option>
-          <option value="1">🎁 Gifts</option>
-          <option value="0">🛠️ Made by Me</option>
-        </select>
-      </div>
-      <div class="flex-1 min-w-48">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Gifted To:</label>
-        <input type="text" name="filter_gifted_to" placeholder="Person's name..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
-      </div>
-      <div class="flex items-end">
-        <button class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
-          🔍 Filter
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Boards Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {% for board in boards %}
-    <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 transform hover:scale-105">
-      <a href="{{ url_for('board_detail', board_id=board.id) }}" class="block">
-        {% if board.image_front %}
-          <div class="relative overflow-hidden h-48">
-            <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
-                 class="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
-                 alt="Board Front">
-            <div class="absolute top-3 right-3">
-              {% if board.in_collection %}
-                <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">📦 Collection</span>
-              {% else %}
-                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-bold">🚫 Not Owned</span>
-              {% endif %}
-            </div>
-            {% if board.is_gift %}
-              <div class="absolute top-3 left-3">
-                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">🎁 Gift</span>
-              </div>
-            {% endif %}
-          </div>
-        {% endif %}
-        
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xl font-bold text-gray-800">{{ board.roman_number or "🎁 Gift" }}</h3>
-            <span class="text-sm text-gray-500">{{ board.date or "Unknown" }}</span>
-          </div>
-          
-          <p class="text-gray-600 mb-3">{{ board.wood_type }}</p>
-          
-          {% if board.description %}
-            <p class="text-gray-500 text-sm mb-3 line-clamp-2">{{ board.description }}</p>
-          {% endif %}
-          
-          {% if board.gifted_to or board.gifted_from %}
-            <div class="text-xs text-gray-400 mb-2">
-              {% if board.gifted_to %}
-                <span>🎁 To: {{ board.gifted_to }}</span>
-              {% endif %}
-              {% if board.gifted_from %}
-                <span>📨 From: {{ board.gifted_from }}</span>
-              {% endif %}
-            </div>
-          {% endif %}
-        </div>
-      </a>
-      
-      <div class="px-6 pb-6 flex justify-between items-center border-t border-gray-100 pt-4">
-        <a href="{{ url_for('edit_board', board_id=board.id) }}" 
-           class="text-yellow-600 hover:text-yellow-700 font-medium transition-colors duration-200 flex items-center space-x-1">
-          <span>✏️</span>
-          <span>Edit</span>
-        </a>
-        <form action="/delete_board/{{ board.id }}" method="POST" class="inline">
-          <button class="text-red-600 hover:text-red-700 font-medium transition-colors duration-200 flex items-center space-x-1" 
-                  onclick="return confirm('Are you sure you want to delete this board?')">
-            <span>🗑️</span>
-            <span>Delete</span>
-          </button>
-        </form>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  {% if not boards %}
-  <div class="text-center py-16">
-    <div class="text-8xl mb-6">🎯</div>
-    <h2 class="text-3xl font-bold text-gray-600 mb-4">No boards in your collection yet!</h2>
-    <p class="text-gray-500 text-lg mb-6">Start building your amazing cribbage board collection.</p>
-    <button onclick="document.getElementById('showAddForm').click()" 
-            class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
-      ✨ Add Your First Board
-    </button>
-  </div>
   {% endif %}
 </div>
 
+<!-- Add Board Modal -->
+<div id="addBoardModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Add New Board</h2>
+      <button onclick="closeModal('addBoardModal')" class="modal-close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form action="{{ url_for('add_board') }}" method="POST" enctype="multipart/form-data">
+      <div class="modal-body">
+        <div class="form-group mb-4">
+          <label class="form-label">Roman Number *</label>
+          <input type="text" name="roman_number" required class="form-input" placeholder="e.g., I, II, III, IV">
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-input" rows="2" placeholder="Brief description of the board"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="form-group">
+            <label class="form-label">Date (MM/DD/YYYY)</label>
+            <input type="text" name="date" class="form-input" placeholder="MM/DD/YYYY">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">In Collection</label>
+            <select name="in_collection" class="form-input">
+              <option value="1">Yes - In Collection</option>
+              <option value="0">No - Not in Collection</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="form-group">
+            <label class="form-label">Material Type</label>
+            <select name="material_type" class="form-input" onchange="toggleModalWoodType(this.value); toggleCustomMaterial(this.value)">
+              <option value="">Select material</option>
+              <option value="Wood">Wood</option>
+              <option value="Plastic">Plastic</option>
+              <option value="Metal">Metal</option>
+              <option value="Other">Other (specify)</option>
+            </select>
+            <input type="text" name="custom_material_type" id="modal-custom-material" class="form-input mt-2" placeholder="Enter custom material type" style="display: none;">
+          </div>
+          
+          <div class="form-group" id="modal-wood-type-group" style="display: none;">
+            <label class="form-label">Wood Type</label>
+            <select name="wood_type" class="form-input" onchange="toggleCustomWood(this.value)">
+              <option value="">Select wood type</option>
+              <option value="Oak">Oak</option>
+              <option value="Maple">Maple</option>
+              <option value="Cherry">Cherry</option>
+              <option value="Walnut">Walnut</option>
+              <option value="Pine">Pine</option>
+              <option value="Cedar">Cedar</option>
+              <option value="Mahogany">Mahogany</option>
+              <option value="Other">Other (specify)</option>
+            </select>
+            <input type="text" name="custom_wood_type" id="modal-custom-wood" class="form-input mt-2" placeholder="Enter custom wood type" style="display: none;">
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Is Gift?</label>
+          <select name="is_gift" class="form-input" onchange="toggleModalGiftFields(this.value)">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+
+        <div id="modal-gift-fields" style="display: none;">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="form-group">
+              <label class="form-label">Gifted To</label>
+              <input type="text" name="gifted_to" class="form-input" placeholder="Person's name">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Gifted From</label>
+              <input type="text" name="gifted_from" class="form-input" placeholder="Person's name">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="form-group">
+            <label class="form-label">Front Image</label>
+            <input type="file" name="front_view" accept="image/*" class="form-input">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Back Image</label>
+            <input type="file" name="back_view" accept="image/*" class="form-input">
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" onclick="closeModal('addBoardModal')" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Board</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const showButton = document.getElementById('showAddForm');
-  const hideButton = document.getElementById('hideAddForm');
-  const cancelButton = document.getElementById('cancelAdd');
-  const form = document.getElementById('addBoardForm');
-  const giftCheckbox = document.getElementById('giftCheckbox');
-  const giftDetails = document.getElementById('giftDetails');
+// Modal functions
+function openModal(modalId) {
+  document.getElementById(modalId).classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
 
-  // Show/hide form functionality
-  showButton.addEventListener('click', function() {
-    form.style.display = 'block';
-    showButton.style.display = 'none';
-    form.scrollIntoView({ behavior: 'smooth' });
-  });
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+  document.body.style.overflow = '';
+}
 
-  hideButton.addEventListener('click', function() {
-    form.style.display = 'none';
-    showButton.style.display = 'block';
-  });
+// Modal form functions
+function toggleModalWoodType(material) {
+  const woodTypeGroup = document.getElementById('modal-wood-type-group');
+  if (material === 'Wood') {
+    woodTypeGroup.style.display = 'block';
+  } else {
+    woodTypeGroup.style.display = 'none';
+    // Clear the wood type selection when material is not wood
+    const woodTypeSelect = woodTypeGroup.querySelector('select[name="wood_type"]');
+    const customWoodInput = document.getElementById('modal-custom-wood');
+    if (woodTypeSelect) {
+      woodTypeSelect.value = '';
+    }
+    if (customWoodInput) {
+      customWoodInput.style.display = 'none';
+      customWoodInput.value = '';
+    }
+  }
+}
 
-  cancelButton.addEventListener('click', function() {
-    form.style.display = 'none';
-    showButton.style.display = 'block';
-    form.reset();
-    // Reset gift details opacity
-    giftDetails.style.opacity = '0.5';
-  });
+function toggleCustomMaterial(material) {
+  const customInput = document.getElementById('modal-custom-material');
+  if (material === 'Other') {
+    customInput.style.display = 'block';
+    customInput.required = true;
+  } else {
+    customInput.style.display = 'none';
+    customInput.required = false;
+    customInput.value = '';
+  }
+}
 
-  // Gift checkbox functionality
-  giftCheckbox.addEventListener('change', function() {
-    if (this.checked) {
-      giftDetails.style.opacity = '1';
-      giftDetails.querySelectorAll('input').forEach(input => {
-        input.disabled = false;
-      });
+function toggleCustomWood(woodType) {
+  const customInput = document.getElementById('modal-custom-wood');
+  if (woodType === 'Other') {
+    customInput.style.display = 'block';
+    customInput.required = true;
+  } else {
+    customInput.style.display = 'none';
+    customInput.required = false;
+    customInput.value = '';
+  }
+}
+
+function toggleModalGiftFields(isGift) {
+  const giftFields = document.getElementById('modal-gift-fields');
+  if (isGift === '1') {
+    giftFields.style.display = 'block';
+  } else {
+    giftFields.style.display = 'none';
+    // Clear the gift fields when not a gift
+    const giftToInput = giftFields.querySelector('input[name="gifted_to"]');
+    const giftFromInput = giftFields.querySelector('input[name="gifted_from"]');
+    if (giftToInput) giftToInput.value = '';
+    if (giftFromInput) giftFromInput.value = '';
+  }
+}
+
+// View toggle
+let currentView = 'grid';
+
+function setView(view) {
+  currentView = view;
+  const grid = document.getElementById('boardsGrid');
+  const list = document.getElementById('boardsList');
+  const gridBtn = document.getElementById('gridViewBtn');
+  const listBtn = document.getElementById('listViewBtn');
+  
+  if (view === 'grid') {
+    grid.classList.remove('hidden');
+    list.classList.add('hidden');
+    gridBtn.classList.add('btn-primary');
+    gridBtn.classList.remove('btn-secondary');
+    listBtn.classList.add('btn-secondary');
+    listBtn.classList.remove('btn-primary');
+  } else {
+    grid.classList.add('hidden');
+    list.classList.remove('hidden');
+    listBtn.classList.add('btn-primary');
+    listBtn.classList.remove('btn-secondary');
+    gridBtn.classList.add('btn-secondary');
+    gridBtn.classList.remove('btn-primary');
+  }
+}
+
+// Search and filter
+function filterBoards() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const filter = document.getElementById('categoryFilter').value;
+  
+  const cards = document.querySelectorAll('.board-card');
+  const rows = document.querySelectorAll('.board-row');
+  
+  cards.forEach(card => {
+    const name = card.dataset.name || '';
+    const matchesSearch = name.includes(search);
+    
+    let matchesFilter = true;
+    if (filter) {
+      switch(filter) {
+        case 'in_collection':
+          matchesFilter = card.dataset.inCollection === '1';
+          break;
+        case 'not_in_collection':
+          matchesFilter = card.dataset.inCollection === '0';
+          break;
+        case 'is_gift':
+          matchesFilter = card.dataset.isGift === '1';
+          break;
+        case 'gifted_to':
+          matchesFilter = card.dataset.giftedTo && card.dataset.giftedTo.trim() !== '';
+          break;
+        case 'gifted_from':
+          matchesFilter = card.dataset.giftedFrom && card.dataset.giftedFrom.trim() !== '';
+          break;
+      }
+    }
+    
+    if (matchesSearch && matchesFilter) {
+      card.style.display = '';
     } else {
-      giftDetails.style.opacity = '0.5';
-      giftDetails.querySelectorAll('input').forEach(input => {
-        input.disabled = true;
-        input.value = '';
-      });
+      card.style.display = 'none';
     }
   });
+  
+  rows.forEach(row => {
+    const name = row.dataset.name || '';
+    const matchesSearch = name.includes(search);
+    
+    let matchesFilter = true;
+    if (filter) {
+      switch(filter) {
+        case 'in_collection':
+          matchesFilter = row.dataset.inCollection === '1';
+          break;
+        case 'not_in_collection':
+          matchesFilter = row.dataset.inCollection === '0';
+          break;
+        case 'is_gift':
+          matchesFilter = row.dataset.isGift === '1';
+          break;
+        case 'gifted_to':
+          matchesFilter = row.dataset.giftedTo && row.dataset.giftedTo.trim() !== '';
+          break;
+        case 'gifted_from':
+          matchesFilter = row.dataset.giftedFrom && row.dataset.giftedFrom.trim() !== '';
+          break;
+      }
+    }
+    
+    if (matchesSearch && matchesFilter) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
 
-  // Initialize gift details state
-  if (!giftCheckbox.checked) {
-    giftDetails.querySelectorAll('input').forEach(input => {
-      input.disabled = true;
-    });
+document.getElementById('searchInput').addEventListener('input', filterBoards);
+document.getElementById('categoryFilter').addEventListener('change', filterBoards);
+
+// Board actions
+function editBoard(id) {
+  window.location.href = `/edit_board/${id}`;
+}
+
+function deleteBoard(id) {
+  if (confirm('Are you sure you want to delete this board?')) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/delete_board/${id}`;
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal')) {
+    e.target.classList.add('hidden');
+    document.body.style.overflow = '';
   }
 });
+
+// Initialize grid view
+setView('grid');
 </script>
+
+<style>
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+</style>
 {% endblock %}

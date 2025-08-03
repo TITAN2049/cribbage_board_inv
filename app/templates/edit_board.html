@@ -1,150 +1,233 @@
 {% extends "base.html" %}
+
+{% block title %}Edit Board - Cribbage Collection{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto">
-  <!-- Back Button -->
-  <div class="mb-6">
-    <a href="{{ url_for('board_detail', board_id=board.id) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-md">
-      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-      </svg>
-      Back to Board Details
-    </a>
-  </div>
-
-  <!-- Edit Board Header -->
-  <div class="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-t-xl shadow-lg">
-    <h1 class="text-3xl font-bold">Edit Board {{ board.roman_number or '' }}</h1>
-    <p class="text-green-100 mt-2">Update board information and images</p>
-  </div>
-
-  <!-- Edit Form -->
-  <div class="bg-white rounded-b-xl shadow-lg p-6">
-    <form method="POST" enctype="multipart/form-data" class="space-y-6">
-      <!-- Basic Information -->
-      <div class="grid md:grid-cols-2 gap-6">
-        <div class="space-y-4">
-          <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Basic Information</h3>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Date Made</label>
-            <input type="text" name="date" value="{{ board.date or '' }}" 
-                   placeholder="mm/dd/yyyy" 
-                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Roman Numeral</label>
-            <input type="text" name="roman" value="{{ board.roman_number or '' }}" 
-                   placeholder="I, II, III, IV, etc." 
-                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea name="desc" rows="3" 
-                      placeholder="Describe the board's features, style, or history..." 
-                      class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{{ board.description or '' }}</textarea>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Materials</h3>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Wood Type</label>
-            <input type="text" name="wood" value="{{ board.wood_type or '' }}" 
-                   placeholder="Oak, Cherry, Walnut, etc." 
-                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Material Type</label>
-            <input type="text" name="material" value="{{ board.material_type or '' }}" 
-                   placeholder="Wood, Plastic, Metal, etc." 
-                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          </div>
-        </div>
-      </div>
-
-      <!-- Status and Gift Information -->
-      <div class="space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Status & Gift Information</h3>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div class="space-y-4">
-            <label class="flex items-center space-x-3">
-              <input type="checkbox" name="in_collection" {% if board.in_collection %}checked{% endif %} 
-                     class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-              <span class="text-sm font-medium text-gray-700">In My Collection</span>
-            </label>
-            
-            <label class="flex items-center space-x-3">
-              <input type="checkbox" name="is_gift" {% if board.is_gift %}checked{% endif %} 
-                     class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
-              <span class="text-sm font-medium text-gray-700">This board was a gift</span>
-            </label>
-          </div>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Gifted To</label>
-              <input type="text" name="gifted_to" value="{{ board.gifted_to or '' }}" 
-                     placeholder="Person's name (if applicable)" 
-                     class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Gifted From</label>
-              <input type="text" name="gifted_from" value="{{ board.gifted_from or '' }}" 
-                     placeholder="Person's name (if applicable)" 
-                     class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Image Upload -->
-      <div class="space-y-4">
-        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Board Images</h3>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">Front Image</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-              <input type="file" name="front" accept="image/*" 
-                     class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-              {% if board.image_front %}
-              <p class="text-xs text-gray-500 mt-2">Current: {{ board.image_front }}</p>
-              {% endif %}
-            </div>
-          </div>
-          
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">Back Image</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-              <input type="file" name="back" accept="image/*" 
-                     class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-              {% if board.image_back %}
-              <p class="text-xs text-gray-500 mt-2">Current: {{ board.image_back }}</p>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex items-center justify-between pt-6 border-t">
-        <a href="{{ url_for('board_detail', board_id=board.id) }}" 
-           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200">
-          Cancel
-        </a>
-        
-        <button type="submit" 
-                class="px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg">
-          Save Changes
-        </button>
-      </div>
-    </form>
-  </div>
+<div class="mb-6">
+  <a href    <div class="flex gap-3 justify-end">
+      <a href="{{ url_for('board_detail', board_id=board.id) }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i>
+        Update Board
+      </button>rl_for('board_detail', board_id=board.id) }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Back to Board
+  </a>
 </div>
+
+<div class="mb-6">
+  <h1 class="page-header">Edit Board</h1>
+  <p class="text-gray-600">Update board information</p>
+</div>
+
+<div class="card p-6" style="max-width: 48rem; margin: 0 auto;">
+  <form method="POST" enctype="multipart/form-data">
+    <div class="form-group mb-4">
+      <div class="form-group">
+        <label class="form-label">Roman Number *</label>
+        <input type="text" name="roman_number" required class="form-input" value="{{ board.roman_number or '' }}" placeholder="e.g., I, II, III, IV">
+      </div>
+    </div>
+
+    <div class="form-group mb-4">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-input" rows="2" placeholder="Brief description of the board">{{ board.description or '' }}</textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Date (MM/DD/YYYY)</label>
+        <input type="text" name="date" class="form-input" value="{{ board.date or '' }}" placeholder="MM/DD/YYYY">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">In Collection</label>
+        <select name="in_collection" class="form-input">
+          <option value="1" {% if board.in_collection == 1 %}selected{% endif %}>Yes - In Collection</option>
+          <option value="0" {% if board.in_collection == 0 %}selected{% endif %}>No - Not in Collection</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Material Type</label>
+        <select name="material_type" class="form-input" onchange="toggleWoodType(this.value); toggleCustomMaterial(this.value)">
+          <option value="">Select material</option>
+          <option value="Wood" {% if board.material_type == 'Wood' %}selected{% endif %}>Wood</option>
+          <option value="Plastic" {% if board.material_type == 'Plastic' %}selected{% endif %}>Plastic</option>
+          <option value="Metal" {% if board.material_type == 'Metal' %}selected{% endif %}>Metal</option>
+          <option value="Other" {% if board.material_type not in ['Wood', 'Plastic', 'Metal', ''] %}selected{% endif %}>Other (specify)</option>
+        </select>
+        <input type="text" name="custom_material_type" id="custom-material" class="form-input mt-2" 
+               placeholder="Enter custom material type" 
+               value="{% if board.material_type not in ['Wood', 'Plastic', 'Metal', ''] %}{{ board.material_type }}{% endif %}"
+               style="display: {% if board.material_type not in ['Wood', 'Plastic', 'Metal', ''] %}block{% else %}none{% endif %};">
+      </div>
+      
+      <div class="form-group" id="wood-type-group" style="display: {% if board.material_type == 'Wood' %}block{% else %}none{% endif %};">
+        <label class="form-label">Wood Type</label>
+        <select name="wood_type" class="form-input" onchange="toggleCustomWood(this.value)">
+          <option value="">Select wood type</option>
+          <option value="Oak" {% if board.wood_type == 'Oak' %}selected{% endif %}>Oak</option>
+          <option value="Maple" {% if board.wood_type == 'Maple' %}selected{% endif %}>Maple</option>
+          <option value="Cherry" {% if board.wood_type == 'Cherry' %}selected{% endif %}>Cherry</option>
+          <option value="Walnut" {% if board.wood_type == 'Walnut' %}selected{% endif %}>Walnut</option>
+          <option value="Pine" {% if board.wood_type == 'Pine' %}selected{% endif %}>Pine</option>
+          <option value="Cedar" {% if board.wood_type == 'Cedar' %}selected{% endif %}>Cedar</option>
+          <option value="Mahogany" {% if board.wood_type == 'Mahogany' %}selected{% endif %}>Mahogany</option>
+          <option value="Other" {% if board.wood_type not in ['Oak', 'Maple', 'Cherry', 'Walnut', 'Pine', 'Cedar', 'Mahogany', ''] %}selected{% endif %}>Other (specify)</option>
+        </select>
+        <input type="text" name="custom_wood_type" id="custom-wood" class="form-input mt-2" 
+               placeholder="Enter custom wood type"
+               value="{% if board.wood_type not in ['Oak', 'Maple', 'Cherry', 'Walnut', 'Pine', 'Cedar', 'Mahogany', ''] %}{{ board.wood_type }}{% endif %}"
+               style="display: {% if board.wood_type not in ['Oak', 'Maple', 'Cherry', 'Walnut', 'Pine', 'Cedar', 'Mahogany', ''] %}block{% else %}none{% endif %};">
+      </div>
+    </div>
+
+    <div class="form-group mb-4">
+      <label class="form-label">Is Gift?</label>
+      <select name="is_gift" class="form-input" onchange="toggleGiftFields(this.value)">
+        <option value="0" {% if board.is_gift == 0 %}selected{% endif %}>No</option>
+        <option value="1" {% if board.is_gift == 1 %}selected{% endif %}>Yes</option>
+      </select>
+    </div>
+
+    <div id="gift-fields" style="display: {% if board.is_gift == 1 %}block{% else %}none{% endif %};">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="form-group">
+          <label class="form-label">Gifted To</label>
+          <input type="text" name="gifted_to" class="form-input" value="{{ board.gifted_to or '' }}" placeholder="Person's name">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Gifted From</label>
+          <input type="text" name="gifted_from" class="form-input" value="{{ board.gifted_from or '' }}" placeholder="Person's name">
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Images -->
+    {% if board.image_front or board.image_back %}
+      <div class="mb-4">
+        <label class="form-label">Current Images</label>
+        <div class="grid grid-cols-2 gap-4">
+          {% if board.image_front %}
+            <div>
+              <p class="text-sm text-gray-600 mb-1">Front</p>
+              <img src="{{ url_for('static', filename='uploads/' + board.image_front) }}" 
+                   alt="Front" class="w-full h-32 object-cover rounded">
+            </div>
+          {% endif %}
+          
+          {% if board.image_back %}
+            <div>
+              <p class="text-sm text-gray-600 mb-1">Back</p>
+              <img src="{{ url_for('static', filename='uploads/' + board.image_back) }}" 
+                   alt="Back" class="w-full h-32 object-cover rounded">
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="form-group">
+        <label class="form-label">{% if board.image_front %}Replace Front Image{% else %}Front Image{% endif %}</label>
+        <input type="file" name="image_front" accept="image/*" class="form-input">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">{% if board.image_back %}Replace Back Image{% else %}Back Image{% endif %}</label>
+        <input type="file" name="image_back" accept="image/*" class="form-input">
+      </div>
+    </div>
+
+    <div class="flex gap-3 justify-end">
+      <a href="{{ url_for('board_detail', board_id=board.id) }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i>
+        Update Board
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleWoodType(material) {
+  const woodTypeGroup = document.getElementById('wood-type-group');
+  if (material === 'Wood') {
+    woodTypeGroup.style.display = 'block';
+  } else {
+    woodTypeGroup.style.display = 'none';
+    // Clear the wood type selection when material is not wood
+    const woodTypeSelect = woodTypeGroup.querySelector('select[name="wood_type"]');
+    const customWoodInput = document.getElementById('custom-wood');
+    if (woodTypeSelect) {
+      woodTypeSelect.value = '';
+    }
+    if (customWoodInput) {
+      customWoodInput.style.display = 'none';
+      customWoodInput.value = '';
+    }
+  }
+}
+
+function toggleCustomMaterial(material) {
+  const customInput = document.getElementById('custom-material');
+  if (material === 'Other') {
+    customInput.style.display = 'block';
+    customInput.required = true;
+  } else {
+    customInput.style.display = 'none';
+    customInput.required = false;
+    customInput.value = '';
+  }
+}
+
+function toggleCustomWood(woodType) {
+  const customInput = document.getElementById('custom-wood');
+  if (woodType === 'Other') {
+    customInput.style.display = 'block';
+    customInput.required = true;
+  } else {
+    customInput.style.display = 'none';
+    customInput.required = false;
+    customInput.value = '';
+  }
+}
+
+function toggleGiftFields(isGift) {
+  const giftFields = document.getElementById('gift-fields');
+  if (isGift === '1') {
+    giftFields.style.display = 'block';
+  } else {
+    giftFields.style.display = 'none';
+    // Clear the gift fields when not a gift
+    const giftToInput = giftFields.querySelector('input[name="gifted_to"]');
+    const giftFromInput = giftFields.querySelector('input[name="gifted_from"]');
+    if (giftToInput) giftToInput.value = '';
+    if (giftFromInput) giftFromInput.value = '';
+  }
+}
+
+// Initialize field visibility on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const materialSelect = document.querySelector('select[name="material_type"]');
+  if (materialSelect) {
+    toggleWoodType(materialSelect.value);
+    toggleCustomMaterial(materialSelect.value);
+  }
+  
+  const woodSelect = document.querySelector('select[name="wood_type"]');
+  if (woodSelect) {
+    toggleCustomWood(woodSelect.value);
+  }
+  
+  const giftSelect = document.querySelector('select[name="is_gift"]');
+  if (giftSelect) {
+    toggleGiftFields(giftSelect.value);
+  }
+});
+</script>
 {% endblock %}

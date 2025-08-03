@@ -1,100 +1,324 @@
 {% extends "base.html" %}
+
+{% block title %}Statistics - Cribbage Collection{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto">
-  <h1 class="text-3xl font-bold mb-6 text-center">🏆 Player Leaderboard</h1>
+<div class="mb-6">
+  <div>
+    <h1 class="page-header">Statistics & Leaderboard</h1>
+    <p class="text-gray-600">Player performance and collection statistics</p>
+  </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 grid-cols-md-2 grid-cols-lg-4 gap-6 mb-8">
+  <div class="card p-6 text-center">
+    <div class="text-3xl font-bold text-blue-600 mb-2">{{ boards|length if boards else 0 }}</div>
+    <div class="text-gray-600">Total Boards</div>
+  </div>
   
-  <div class="grid gap-4">
-    {% for stat in stats %}
-    <div class="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow duration-300">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-        
-        <!-- Player Name & Basic Stats -->
-        <div class="md:col-span-1">
-          <a href="{{ url_for('player_detail', player_id=stat.player.id) }}" 
-             class="text-xl font-bold text-blue-600 hover:text-blue-800 transition-colors">
-            {{ stat.player.first_name }} {{ stat.player.last_name }}
-          </a>
-          <div class="flex items-center space-x-4 mt-2">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-green-600">{{ stat.player.wins }}</div>
-              <div class="text-xs text-gray-500">WINS</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-red-600">{{ stat.player.total_losses }}</div>
-              <div class="text-xs text-gray-500">LOSSES</div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-semibold text-blue-600">
-                {% if stat.player.total_games > 0 %}
-                  {{ "%.1f"|format((stat.player.wins / stat.player.total_games) * 100) }}%
-                {% else %}
-                  0.0%
-                {% endif %}
-              </div>
-              <div class="text-xs text-gray-500">WIN RATE</div>
-            </div>
-          </div>
-        </div>
+  <div class="card p-6 text-center">
+    <div class="text-3xl font-bold text-green-600 mb-2">{{ players|length if players else 0 }}</div>
+    <div class="text-gray-600">Active Players</div>
+  </div>
+  
+  <div class="card p-6 text-center">
+    <div class="text-3xl font-bold text-purple-600 mb-2">{{ games|length if games else 0 }}</div>
+    <div class="text-gray-600">Games Played</div>
+  </div>
+  
+  <div class="card p-6 text-center">
+    {% set in_collection_count = boards | selectattr('in_collection', 'equalto', 1) | list | length if boards else 0 %}
+    <div class="text-3xl font-bold text-orange-600 mb-2">{{ in_collection_count }}</div>
+    <div class="text-gray-600">In Collection</div>
+  </div>
+</div>
 
-        <!-- Skunk Stats -->
-        <div class="md:col-span-1">
-          <h3 class="font-semibold text-gray-700 mb-2">🦨 Skunk Record</h3>
-          <div class="flex justify-between">
-            <div class="text-center">
-              <div class="text-lg font-bold text-orange-600">{{ stat.player.skunks_given }}</div>
-              <div class="text-xs text-gray-500">Given</div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-bold text-orange-800">{{ stat.player.skunks_received }}</div>
-              <div class="text-xs text-gray-500">Received</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Nemesis -->
-        <div class="md:col-span-1">
-          {% if stat.nemesis %}
-          <div class="bg-red-50 rounded-lg p-3 border-l-4 border-red-400">
-            <h3 class="font-semibold text-red-700 mb-1">😈 Nemesis</h3>
-            <div class="text-sm font-medium">{{ stat.nemesis.opponent_name }}</div>
-            <div class="text-xs text-red-600">{{ stat.nemesis.losses_to_them }} losses</div>
-          </div>
-          {% else %}
-          <div class="bg-gray-50 rounded-lg p-3 text-center">
-            <div class="text-sm text-gray-500">No nemesis yet</div>
-          </div>
-          {% endif %}
-        </div>
-
-        <!-- Favorite Victim -->
-        <div class="md:col-span-1">
-          {% if stat.favorite_victim %}
-          <div class="bg-green-50 rounded-lg p-3 border-l-4 border-green-400">
-            <h3 class="font-semibold text-green-700 mb-1">🎯 Favorite Victim</h3>
-            <div class="text-sm font-medium">{{ stat.favorite_victim.opponent_name }}</div>
-            <div class="text-xs text-green-600">{{ stat.favorite_victim.wins_against_them }} wins</div>
-          </div>
-          {% else %}
-          <div class="bg-gray-50 rounded-lg p-3 text-center">
-            <div class="text-sm text-gray-500">No favorite victim yet</div>
-          </div>
-          {% endif %}
-        </div>
-
+<!-- Player Leaderboard -->
+{% if leaderboard %}
+  <div class="card mb-8">
+    <div class="p-6 border-b">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold">🏆 Player Leaderboard</h2>
+        <div class="text-sm text-gray-500">Ranked by win percentage</div>
       </div>
     </div>
-    {% endfor %}
+    <div class="p-6">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b text-left">
+              <th class="pb-3 font-medium text-gray-700">Rank</th>
+              <th class="pb-3 font-medium text-gray-700">Player</th>
+              <th class="pb-3 font-medium text-gray-700">Record</th>
+              <th class="pb-3 font-medium text-gray-700">Win Rate</th>
+              <th class="pb-3 font-medium text-gray-700">Skunks</th>
+              <th class="pb-3 font-medium text-gray-700">Avg Score</th>
+              <th class="pb-3 font-medium text-gray-700">Streak</th>
+              <th class="pb-3 font-medium text-gray-700">Form</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for player in leaderboard %}
+              <tr class="border-b hover:bg-gray-50 transition-colors">
+                <!-- Rank with special styling for top 3 -->
+                <td class="py-4">
+                  {% if loop.index == 1 %}
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center font-bold text-white shadow-lg">
+                      <i class="fas fa-crown text-sm"></i>
+                    </div>
+                  {% elif loop.index == 2 %}
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center font-bold text-white shadow-lg">
+                      2
+                    </div>
+                  {% elif loop.index == 3 %}
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center font-bold text-white shadow-lg">
+                      3
+                    </div>
+                  {% else %}
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-700">
+                      {{ loop.index }}
+                    </div>
+                  {% endif %}
+                </td>
+                
+                <!-- Player Info -->
+                <td class="py-4">
+                  <div class="flex items-center gap-3">
+                    {% if player.photo %}
+                      <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+                           alt="{{ player.first_name }} {{ player.last_name }}" 
+                           class="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                           style="width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: 50%;">
+                    {% else %}
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                        <i class="fas fa-user text-white text-sm"></i>
+                      </div>
+                    {% endif %}
+                    <div>
+                      <a href="{{ url_for('player_detail', player_id=player.id) }}" 
+                         class="font-medium text-gray-800 hover:text-blue-600 transition-colors">
+                        {{ player.first_name }} {{ player.last_name }}
+                      </a>
+                      <div class="text-xs text-gray-500">{{ player.total_games }} games played</div>
+                    </div>
+                  </div>
+                </td>
+                
+                <!-- Win/Loss Record -->
+                <td class="py-4">
+                  <div class="text-sm">
+                    <span class="font-semibold text-green-600">{{ player.wins }}W</span>
+                    <span class="text-gray-400"> - </span>
+                    <span class="font-semibold text-red-600">{{ player.losses }}L</span>
+                  </div>
+                </td>
+                
+                <!-- Win Rate with Progress Bar -->
+                <td class="py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-20 bg-gray-200 rounded-full h-2.5">
+                      {% if player.win_percentage >= 70 %}
+                        <div class="h-2.5 rounded-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-300" style="width: {{ player.win_percentage }}%;"></div>
+                      {% elif player.win_percentage >= 50 %}
+                        <div class="h-2.5 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-300" style="width: {{ player.win_percentage }}%;"></div>
+                      {% else %}
+                        <div class="h-2.5 rounded-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-300" style="width: {{ player.win_percentage }}%;"></div>
+                      {% endif %}
+                    </div>
+                    <span class="text-sm font-semibold 
+                                {{ 'text-green-600' if player.win_percentage >= 70 
+                                   else 'text-yellow-600' if player.win_percentage >= 50 
+                                   else 'text-red-600' }}">
+                      {{ "%.1f"|format(player.win_percentage) }}%
+                    </span>
+                  </div>
+                </td>
+                
+                <!-- Skunks -->
+                <td class="py-4">
+                  <div class="text-sm space-y-1">
+                    <div class="flex items-center gap-1">
+                      <span class="text-orange-600 font-semibold">{{ player.skunks_given }}</span>
+                      <i class="fas fa-arrow-up text-orange-500 text-xs"></i>
+                      {% if player.double_skunks_given > 0 %}
+                        <span class="text-red-600 font-bold text-xs">({{ player.double_skunks_given }}🔥)</span>
+                      {% endif %}
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <span class="text-red-600 font-semibold">{{ player.skunks_received }}</span>
+                      <i class="fas fa-arrow-down text-red-500 text-xs"></i>
+                      {% if player.double_skunks_received > 0 %}
+                        <span class="text-red-700 font-bold text-xs">({{ player.double_skunks_received }}💀)</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                
+                <!-- Average Winning Score -->
+                <td class="py-4">
+                  <div class="text-sm font-mono text-gray-700">
+                    {{ "%.1f"|format(player.avg_winning_score) if player.avg_winning_score else 'N/A' }}
+                  </div>
+                </td>
+                
+                <!-- Current Streak -->
+                <td class="py-4">
+                  <div class="text-sm">
+                    {% set streak_num = player.current_streak[:-1] if player.current_streak[-1:] in ['W', 'L'] else '0' %}
+                    {% set streak_type = player.current_streak[-1:] if player.current_streak[-1:] in ['W', 'L'] else '' %}
+                    {% if streak_type == 'W' %}
+                      <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
+                        🔥 {{ streak_num }}W
+                      </span>
+                    {% elif streak_type == 'L' %}
+                      <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">
+                        ❄️ {{ streak_num }}L
+                      </span>
+                    {% else %}
+                      <span class="text-gray-400 text-xs">-</span>
+                    {% endif %}
+                  </div>
+                </td>
+                
+                <!-- Recent Form -->
+                <td class="py-4">
+                  <div class="text-xs text-gray-600">
+                    <div class="font-medium">{{ player.recent_form }}</div>
+                    <div class="text-gray-400">last 10</div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Leaderboard Legend -->
+      <div class="mt-6 pt-4 border-t border-gray-200">
+        <div class="text-xs text-gray-500 space-y-1">
+          <div class="flex items-center gap-4">
+            <span>🔥 = Double Skunks Given</span>
+            <span>💀 = Double Skunks Received</span>
+            <span>🔥W = Win Streak</span>
+            <span>❄️L = Loss Streak</span>
+          </div>
+          <div>Skunks: ↑ Given / ↓ Received • Win Rate: Green ≥70%, Yellow ≥50%, Red <50%</div>
+        </div>
+      </div>
+    </div>
   </div>
+{% endif %}
 
-  {% if not stats %}
-  <div class="text-center py-12">
-    <div class="text-6xl mb-4">🎮</div>
-    <h2 class="text-2xl font-bold text-gray-600 mb-2">No players yet!</h2>
-    <p class="text-gray-500 mb-4">Add some players and start playing games to see stats here.</p>
-    <a href="{{ url_for('players') }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-      Add Players
-    </a>
+<!-- Player Rivalries -->
+<!-- DEBUG: players={{ players|length if players else 'None' }}, games={{ games|length if games else 'None' }}, nemesis={{ player_nemesis|length if player_nemesis else 'None' }} -->
+{% if players and games and player_nemesis %}
+  <div class="card mb-8">
+    <div class="p-6 border-b">
+      <h2 class="text-xl font-semibold">Player Rivalries</h2>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 grid-cols-md-2 gap-6">
+        {% for player in players %}
+          {% if player.id in player_nemesis %}
+            {% set nemesis_info = player_nemesis[player.id] %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="flex items-center gap-3 mb-2">
+                {% if player.photo %}
+                  <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+                       alt="{{ player.first_name }} {{ player.last_name }}" 
+                       class="w-10 h-10 rounded-full object-cover"
+                       style="width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: 50%;">
+                {% else %}
+                  <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                    <i class="fas fa-user text-gray-500"></i>
+                  </div>
+                {% endif %}
+                <div>
+                  <div class="font-semibold">{{ player.first_name }} {{ player.last_name }}</div>
+                  <div class="text-sm text-gray-600">Nemesis Analysis</div>
+                </div>
+              </div>
+              <div class="text-sm">
+                <div class="text-red-600 font-medium">Nemesis: {{ nemesis_info.name }}</div>
+                <div class="text-gray-600">Lost {{ nemesis_info.losses_to_them }} time{{ 's' if nemesis_info.losses_to_them != 1 else '' }}</div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
   </div>
-  {% endif %}
-</div>
+{% endif %}
+
+<!-- Collection Breakdown -->
+{% if boards %}
+  <div class="grid grid-cols-1 grid-cols-md-2 gap-6">
+    <!-- Boards by Material Type -->
+    <div class="card">
+      <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold">Boards by Material</h3>
+      </div>
+      <div class="p-6">
+        {% set materials = {} %}
+        {% for board in boards %}
+          {% set material = board.material_type or 'Unknown' %}
+          {% if materials.update({material: materials.get(material, 0) + 1}) %}{% endif %}
+        {% endfor %}
+        
+        {% for material, count in materials.items() %}
+          <div class="flex justify-between items-center py-2">
+            <span class="text-gray-600">{{ material }}</span>
+            <span class="font-semibold">{{ count }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Boards by Wood Type -->
+    <div class="card">
+      <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold">Boards by Wood Type</h3>
+      </div>
+      <div class="p-6">
+        {% set wood_types = {} %}
+        {% for board in boards %}
+          {% if board.wood_type %}
+            {% set wood_type = board.wood_type %}
+            {% if wood_types.update({wood_type: wood_types.get(wood_type, 0) + 1}) %}{% endif %}
+          {% endif %}
+        {% endfor %}
+        
+        {% if wood_types %}
+          {% for wood_type, count in wood_types.items() %}
+            <div class="flex justify-between items-center py-2">
+              <span class="text-gray-600">{{ wood_type }}</span>
+              <span class="font-semibold">{{ count }}</span>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-gray-500 text-center py-4">No wood boards in collection</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if not players and not boards %}
+  <div class="text-center py-12">
+    <i class="fas fa-chart-bar text-6xl text-gray-300 mb-4"></i>
+    <h3 class="text-xl font-semibold text-gray-600 mb-2">No data to display</h3>
+    <p class="text-gray-500 mb-6">Add some boards and players to see statistics and leaderboards.</p>
+    <div class="flex gap-4 justify-center">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Add Boards
+      </a>
+      <a href="{{ url_for('players') }}" class="btn btn-secondary">
+        <i class="fas fa-users"></i>
+        Add Players
+      </a>
+    </div>
+  </div>
+{% endif %}
 {% endblock %}

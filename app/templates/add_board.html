@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Add Board - Cribbage Collection{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">
+    <i clas    <div class="flex gap-3 justify-end">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Add Board
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleWoodType(material) {
+  const woodTypeGroup = document.getElementById('wood-type-group');
+  if (material === 'Wood') {
+    woodTypeGroup.style.display = 'block';
+  } else {
+    woodTypeGroup.style.display = 'none';
+    // Clear the wood type selection when material is not wood
+    const woodTypeSelect = woodTypeGroup.querySelector('select[name="wood_type"]');
+    if (woodTypeSelect) {
+      woodTypeSelect.value = '';
+    }
+  }
+}
+
+function toggleGiftFields(isGift) {
+  const giftFields = document.getElementById('gift-fields');
+  if (isGift === '1') {
+    giftFields.style.display = 'block';
+  } else {
+    giftFields.style.display = 'none';
+    // Clear the gift fields when not a gift
+    const giftToInput = giftFields.querySelector('input[name="gifted_to"]');
+    const giftFromInput = giftFields.querySelector('input[name="gifted_from"]');
+    if (giftToInput) giftToInput.value = '';
+    if (giftFromInput) giftFromInput.value = '';
+  }
+}
+</script>
+{% endblock %}fa-arrow-left"></i>
+    Back to Collection
+  </a>
+</div>
+
+<div class="mb-6">
+  <h1 class="page-header">Add New Board</h1>
+  <p class="text-gray-600">Add a new cribbage board to your collection</p>
+</div>
+
+<div class="card p-6" style="max-width: 48rem; margin: 0 auto;">
+  <form method="POST" enctype="multipart/form-data">
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Board Name *</label>
+        <input type="text" name="name" required class="form-input" placeholder="Enter board name">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Roman Number</label>
+        <input type="text" name="roman_number" class="form-input" placeholder="e.g., I, II, III, IV">
+      </div>
+    </div>
+
+    <div class="form-group mb-4">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-input" rows="2" placeholder="Brief description of the board"></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Date (MM/DD/YYYY)</label>
+        <input type="text" name="date" class="form-input" placeholder="MM/DD/YYYY">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">In Collection</label>
+        <select name="in_collection" class="form-input">
+          <option value="1">Yes - In Collection</option>
+          <option value="0">No - Not in Collection</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Material Type</label>
+        <select name="material_type" class="form-input" onchange="toggleWoodType(this.value)">
+          <option value="">Select material</option>
+          <option value="Wood">Wood</option>
+          <option value="Plastic">Plastic</option>
+          <option value="Metal">Metal</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      
+      <div class="form-group" id="wood-type-group" style="display: none;">
+        <label class="form-label">Wood Type</label>
+        <select name="wood_type" class="form-input">
+          <option value="">Select wood type</option>
+          <option value="Oak">Oak</option>
+          <option value="Maple">Maple</option>
+          <option value="Cherry">Cherry</option>
+          <option value="Walnut">Walnut</option>
+          <option value="Pine">Pine</option>
+          <option value="Cedar">Cedar</option>
+          <option value="Mahogany">Mahogany</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group mb-4">
+      <label class="form-label">Is Gift?</label>
+      <select name="is_gift" class="form-input" onchange="toggleGiftFields(this.value)">
+        <option value="0">No</option>
+        <option value="1">Yes</option>
+      </select>
+    </div>
+
+    <div id="gift-fields" style="display: none;">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="form-group">
+          <label class="form-label">Gifted To</label>
+          <input type="text" name="gifted_to" class="form-input" placeholder="Person's name">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Gifted From</label>
+          <input type="text" name="gifted_from" class="form-input" placeholder="Person's name">
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Front Image</label>
+        <input type="file" name="image_front" accept="image/*" class="form-input">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Back Image</label>
+        <input type="file" name="image_back" accept="image/*" class="form-input">
+      </div>
+    </div>
+
+    <div class="flex gap-3 justify-end">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i>
+        Add Board
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+  const dateInput = document.querySelector('input[name="date"]');
+  if (dateInput && !dateInput.value) {
+    dateInput.valueAsDate = new Date();
+  }
+});
+</script>
+{% endblock %}
+

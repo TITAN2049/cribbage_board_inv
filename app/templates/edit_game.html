@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Game - Cribbage Collection{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('games') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Back to Games
+  </a>
+</div>
+
+<div class="mb-6">
+  <h1 class="page-header">Edit Game</h1>
+  <p class="text-gray-600">Update game information</p>
+</div>
+
+<div class="card p-6" style="max-width: 48rem; margin: 0 auto;">
+  <form method="POST">
+    <div class="form-group mb-4">
+      <label class="form-label">Game Date *</label>
+      <input type="date" name="date_played" required class="form-input" value="{{ game.date_played or '' }}">
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Winner *</label>
+        <select name="winner_id" required class="form-input">
+          <option value="">Select winner</option>
+          {% for player in players %}
+            <option value="{{ player.id }}" {{ 'selected' if player.id == game.winner_id else '' }}>
+              {{ player.first_name }} {{ player.last_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Loser *</label>
+        <select name="loser_id" required class="form-input">
+          <option value="">Select loser</option>
+          {% for player in players %}
+            <option value="{{ player.id }}" {{ 'selected' if player.id == game.loser_id else '' }}>
+              {{ player.first_name }} {{ player.last_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-group">
+        <label class="form-label">Winner Score</label>
+        <input type="number" name="winner_score" class="form-input" value="{{ game.winner_score or 121 }}" min="0" max="200">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Loser Score</label>
+        <input type="number" name="loser_score" class="form-input" value="{{ game.loser_score or 0 }}" min="0" max="200">
+      </div>
+    </div>
+    
+    <div class="form-group mb-4">
+      <label class="form-label">Board Used</label>
+      <select name="board_id" class="form-input">
+        <option value="">Select board (optional)</option>
+        {% for board in boards %}
+          <option value="{{ board.id }}" {{ 'selected' if board.id == game.board_id else '' }}>
+            {{ board.roman_number }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="form-group mb-6">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-input" rows="3" placeholder="Any notes about this game">{{ game.notes or '' }}</textarea>
+    </div>
+
+    <div class="flex gap-3 justify-end">
+      <a href="{{ url_for('games') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save"></i>
+        Update Game
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

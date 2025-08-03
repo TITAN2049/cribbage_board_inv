@@ -1,124 +1,259 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="max-w-4xl mx-auto">
-  <!-- Back Navigation -->
-  <div class="mb-6">
-    <a href="{{ url_for('players') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-      <span class="mr-2">←</span>
-      <span>Back to Players</span>
-    </a>
-  </div>
 
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mb-6">
-        {% for category, message in messages %}
-          <div class="alert-{{ category }} p-4 rounded-lg mb-3 {% if category == 'error' %}bg-red-100 text-red-800 border border-red-200{% else %}bg-green-100 text-green-800 border border-green-200{% endif %}">
-            <div class="flex items-center">
-              <span class="text-lg mr-2">{% if category == 'error' %}❌{% else %}✅{% endif %}</span>
-              <span>{{ message }}</span>
+{% block title %}{{ player.first_name }} {{ player.last_name }} - Cribbage Collection{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{{ url_for('players') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Back to Players
+  </a>
+</div>
+
+<div class="card p-6 mb-6">
+  <div class="flex items-start gap-6">
+    {% if player.photo %}
+      <img src="{{ url_for('static', filename='uploads/' + player.photo) }}" 
+           alt="{{ player.first_name }} {{ player.last_name }}" 
+           class="w-24 h-24 object-cover rounded-full flex-shrink-0"
+           style="width: 6rem; height: 6rem; object-fit: cover; border-radius: 50%;">
+    {% else %}
+      <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-user text-gray-400 text-3xl"></i>
+      </div>
+    {% endif %}
+    
+    <div class="flex-1">
+      <div class="flex items-center justify-between mb-2">
+        <h1 class="text-3xl font-bold text-gray-800">{{ player.first_name }} {{ player.last_name }}</h1>
+        <div class="flex gap-2">
+          <a href="{{ url_for('edit_player', player_id=player.id) }}" class="btn btn-primary">
+            <i class="fas fa-edit"></i>
+            Edit
+          </a>
+          <button class="btn btn-danger" onclick="confirmDelete('{{ (player.first_name + ' ' + player.last_name)|replace("'", "\\'") }}', '{{ url_for("delete_player", player_id=player.id) }}')">
+            <i class="fas fa-trash"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        {% if player.date_added %}
+          <div>
+            <span class="text-gray-500">Date Added:</span>
+            <span class="text-gray-800">{{ player.date_added }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  {% if player.notes %}
+    <div class="mt-4 pt-4 border-t border-gray-200">
+      <h3 class="font-semibold text-gray-700 mb-2">Notes</h3>
+      <p class="text-gray-600">{{ player.notes }}</p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+  <!-- Basic Win/Loss Stats -->
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-blue-600 mb-1">{{ stats.wins if stats else (player.wins or 0) }}</div>
+    <div class="text-sm text-gray-600">Wins</div>
+  </div>
+  
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-red-600 mb-1">{{ stats.losses if stats else (player.losses or 0) }}</div>
+    <div class="text-sm text-gray-600">Losses</div>
+  </div>
+  
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-green-600 mb-1">
+      {% if stats and stats.total_games > 0 %}
+        {{ "%.1f"|format(stats.win_percentage) }}%
+      {% elif (player.wins or 0) + (player.losses or 0) > 0 %}
+        {{ "%.1f"|format((player.wins or 0) / ((player.wins or 0) + (player.losses or 0)) * 100) }}%
+      {% else %}
+        0.0%
+      {% endif %}
+    </div>
+    <div class="text-sm text-gray-600">Win Rate</div>
+  </div>
+  
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-purple-600 mb-1">{{ stats.total_games if stats else ((player.wins or 0) + (player.losses or 0)) }}</div>
+    <div class="text-sm text-gray-600">Total Games</div>
+  </div>
+</div>
+
+<!-- Advanced Statistics -->
+{% if stats %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-orange-600 mb-1">{{ stats.skunks_given }}</div>
+    <div class="text-sm text-gray-600">Skunks Given</div>
+  </div>
+  
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-red-700 mb-1">{{ stats.skunks_received }}</div>
+    <div class="text-sm text-gray-600">Skunks Received</div>
+  </div>
+  
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-yellow-600 mb-1">{{ "%.1f"|format(stats.avg_winning_score) if stats.avg_winning_score else 0 }}</div>
+    <div class="text-sm text-gray-600">Avg Win Score</div>
+  </div>
+  
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-indigo-600 mb-1">{{ stats.current_streak }}</div>
+    <div class="text-sm text-gray-600">Current Streak</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Rivalries Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  <!-- Nemesis -->
+  {% if nemesis %}
+  <div class="card">
+    <div class="p-6 border-b border-gray-200">
+      <h3 class="text-lg font-semibold text-red-600">
+        <i class="fas fa-skull-crossbones"></i>
+        Nemesis
+      </h3>
+    </div>
+    <div class="p-6">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-user text-red-600"></i>
+        </div>
+        <div>
+          <div class="font-semibold text-gray-800">{{ nemesis.name }}</div>
+          <div class="text-sm text-gray-600">
+            Lost {{ nemesis.losses_to_them }} of {{ nemesis.total_games }} games
+            ({{ "%.1f"|format(nemesis.win_rate_against) }}% win rate vs them)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <!-- Favorite Opponent -->
+  {% if stats and stats.favorite_opponent %}
+  <div class="card">
+    <div class="p-6 border-b border-gray-200">
+      <h3 class="text-lg font-semibold text-green-600">
+        <i class="fas fa-trophy"></i>
+        Favorite Opponent
+      </h3>
+    </div>
+    <div class="p-6">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-user text-green-600"></i>
+        </div>
+        <div>
+          <div class="font-semibold text-gray-800">{{ stats.favorite_opponent.name }}</div>
+          <div class="text-sm text-gray-600">
+            Won {{ stats.favorite_opponent.wins_against_them }} of {{ stats.favorite_opponent.total_games }} games
+            ({{ "%.1f"|format(stats.favorite_opponent.win_rate_against) }}% win rate vs them)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="p-6 border-b border-gray-200">
+    <h2 class="text-xl font-semibold text-gray-800">Game History</h2>
+  </div>
+  
+  <div class="p-6">
+    {% if games %}
+      <div class="space-y-4">
+        {% for game in games %}
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center gap-4">
+              <!-- Opponent info -->
+              <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                <i class="fas fa-user text-gray-500"></i>
+              </div>
+              <div class="text-sm">
+                <div class="font-medium text-gray-800">
+                  vs {{ game.loser if game.winner_id == player.id else game.winner }}
+                </div>
+                <div class="text-gray-500">
+                  {{ game.date_played if game.date_played else 'No date' }}
+                  {% if game.board_id %}
+                    • Board {{ game.board_id }}
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            
+            <div class="text-right">
+              <div class="flex items-center gap-3">
+                <!-- Score -->
+                {% if game.winner_score is not none and game.loser_score is not none %}
+                  <div class="text-sm font-mono text-gray-600">
+                    {% if game.winner_id == player.id %}
+                      {{ game.winner_score }} - {{ game.loser_score }}
+                    {% else %}
+                      {{ game.loser_score }} - {{ game.winner_score }}
+                    {% endif %}
+                  </div>
+                {% endif %}
+                
+                <!-- Result badge -->
+                <div class="text-sm">
+                  {% if game.winner_id == player.id %}
+                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                      Won
+                      {% if game.is_double_skunk %}
+                        (Double Skunk!)
+                      {% elif game.is_skunk %}
+                        (Skunk!)
+                      {% endif %}
+                    </span>
+                  {% else %}
+                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
+                      Lost
+                      {% if game.is_double_skunk %}
+                        (Double Skunked)
+                      {% elif game.is_skunk %}
+                        (Skunked)
+                      {% endif %}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
             </div>
           </div>
         {% endfor %}
       </div>
-    {% endif %}
-  {% endwith %}
-
-  <!-- Player Profile Card -->
-  <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
-    <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-      <!-- Player Photo -->
-      <div class="flex-shrink-0">
-        {% if player.photo %}
-          <img src="{{ url_for('uploaded_file', filename=player.photo) }}" 
-               alt="{{ player.first_name }} {{ player.last_name }}" 
-               class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg">
-        {% else %}
-          <div class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center text-6xl text-gray-500">
-            👤
-          </div>
-        {% endif %}
-      </div>
-      
-      <!-- Player Info -->
-      <div class="flex-grow text-center md:text-left">
-        <h1 class="text-4xl font-bold text-gray-800 mb-2">{{ player.first_name }} {{ player.last_name }}</h1>
-        {% if player.date_added %}
-          <p class="text-gray-600 mb-4">Player since: {{ player.date_added.strftime('%B %d, %Y') if player.date_added.strftime else player.date_added }}</p>
-        {% endif %}
-        
-        <!-- Action Buttons -->
-        <div class="flex flex-wrap gap-3 justify-center md:justify-start">
-          <a href="{{ url_for('edit_player', player_id=player.id) }}" 
-             class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center space-x-2">
-            <span>✏️</span>
-            <span>Edit Player</span>
-          </a>
-          <form action="/delete_player/{{ player.id }}" method="POST" class="inline" 
-                onsubmit="return confirm('⚠️ Are you sure you want to delete {{ player.first_name }} {{ player.last_name }}?\n\nThis action cannot be undone. If they have games recorded, you\'ll need to delete those first.')">
-            <button type="submit" 
-                    class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center space-x-2">
-              <span>🗑️</span>
-              <span>Delete Player</span>
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Game Statistics -->
-  {% if stats %}
-  <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-    <h2 class="text-2xl font-bold mb-6 text-center">🏆 Game Statistics</h2>
-    
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-      <div class="text-center">
-        <div class="text-3xl font-bold text-green-600 mb-2">{{ stats.wins or 0 }}</div>
-        <div class="text-sm font-medium text-gray-600">Wins</div>
-      </div>
-      <div class="text-center">
-        <div class="text-3xl font-bold text-red-600 mb-2">{{ stats.losses or 0 }}</div>
-        <div class="text-sm font-medium text-gray-600">Losses</div>
-      </div>
-      <div class="text-center">
-        <div class="text-3xl font-bold text-orange-600 mb-2">{{ stats.skunks_given or 0 }}</div>
-        <div class="text-sm font-medium text-gray-600">🦨 Skunks Given</div>
-      </div>
-      <div class="text-center">
-        <div class="text-3xl font-bold text-purple-600 mb-2">{{ stats.skunks_received or 0 }}</div>
-        <div class="text-sm font-medium text-gray-600">😵 Skunks Received</div>
-      </div>
-    </div>
-    
-    <!-- Win Rate -->
-    {% set total_games = (stats.wins or 0) + (stats.losses or 0) %}
-    {% if total_games > 0 %}
-      {% set win_rate = ((stats.wins or 0) / total_games * 100) | round(1) %}
-      <div class="mt-6 pt-6 border-t border-gray-200 text-center">
-        <div class="text-xl font-semibold text-gray-700">
-          Win Rate: <span class="text-blue-600">{{ win_rate }}%</span>
-        </div>
-        <div class="text-sm text-gray-500 mt-1">{{ total_games }} total games played</div>
-      </div>
     {% else %}
-      <div class="mt-6 pt-6 border-t border-gray-200 text-center">
-        <div class="text-gray-500">No games played yet</div>
+      <div class="text-center py-8">
+        <i class="fas fa-gamepad text-gray-300 text-4xl mb-4"></i>
+        <p class="text-gray-500">No games played yet</p>
+        <a href="{{ url_for('games') }}" class="btn btn-primary mt-4">
+          <i class="fas fa-plus"></i>
+          Add First Game
+        </a>
       </div>
     {% endif %}
-  </div>
-  {% endif %}
-
-  <!-- Recent Games Section -->
-  <div class="bg-white rounded-lg shadow-lg p-6">
-    <h2 class="text-2xl font-bold mb-6 text-center">🎮 Recent Games</h2>
-    
-    <div class="text-center text-gray-500">
-      <div class="text-4xl mb-4">🚧</div>
-      <p>Recent games feature coming soon!</p>
-      <p class="text-sm mt-2">Check the Games page to see all game records.</p>
-    </div>
   </div>
 </div>
+
+<script>
+function confirmDelete(name, url) {
+  if (confirm(`Are you sure you want to delete player "${name}"? This action cannot be undone.`)) {
+    window.location.href = url;
+  }
+}
+</script>
 {% endblock %}
