@@ -1,1 +1,1 @@
-web: python scripts/deployment/railway_production.py
+web: gunicorn app.app_hybrid:app --bind 0.0.0.0:$PORT
