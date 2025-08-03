@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
 
 # Import and run the app
-from app import app
+from app_hybrid import app
 
 if __name__ == "__main__":
     print("🎮 Starting Cribbage Board Collection App")
