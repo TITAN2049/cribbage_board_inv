@@ -15,6 +15,17 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 DATABASE_URL = os.environ.get('DATABASE_URL')
 IS_RAILWAY = bool(DATABASE_URL)
 
+# Cloudinary configuration
+USE_CLOUDINARY = IS_RAILWAY and os.environ.get('CLOUDINARY_URL')
+
+if USE_CLOUDINARY:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    print("✅ Cloudinary configured for image storage")
+else:
+    print("⚠️  Using local file storage (images will be lost on Railway redeploy)")
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cribbage_board_collection_secret_key_2024')
 
@@ -239,6 +250,47 @@ def execute_query(query, params=None, fetch=False):
         conn.close()
         raise e
 
+def upload_image_to_cloudinary(file, folder="cribbage_boards"):
+    """Upload image to Cloudinary cloud storage"""
+    try:
+        if not USE_CLOUDINARY:
+            return None
+            
+        result = cloudinary.uploader.upload(
+            file,
+            folder=folder,
+            resource_type="image",
+            format="jpg",
+            quality="auto",
+            fetch_format="auto"
+        )
+        return result['secure_url']
+    except Exception as e:
+        print(f"❌ Cloudinary upload failed: {e}")
+        return None
+
+def upload_image(file, prefix=""):
+    """Upload image - use Cloudinary on Railway, local storage otherwise"""
+    if USE_CLOUDINARY:
+        # Upload to Cloudinary
+        url = upload_image_to_cloudinary(file)
+        if url:
+            print(f"✅ Image uploaded to Cloudinary: {url}")
+            return url
+        else:
+            print("❌ Cloudinary upload failed, falling back to local storage")
+    
+    # Fallback to local storage
+    try:
+        filename = generate_unique_filename(file.filename, prefix)
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(file_path)
+        print(f"✅ Image saved locally: {file_path}")
+        return filename
+    except Exception as e:
+        print(f"❌ Local image save failed: {e}")
+        return None
+
 def generate_unique_filename(original_filename, prefix=""):
     """Generate a unique filename to prevent overwrites"""
     if not original_filename:
@@ -265,8 +317,13 @@ def safe_delete_file(filename):
 
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
-    """Serve uploaded files (images)"""
+    """Serve uploaded files (images) - handle both Cloudinary URLs and local files"""
     try:
+        # If filename is a full Cloudinary URL, redirect to it
+        if filename.startswith('http'):
+            from flask import redirect
+            return redirect(filename)
+        
         print(f"🖼️ Serving file request: {filename}")
         print(f"📁 Upload folder: {app.config['UPLOAD_FOLDER']}")
         print(f"📂 Directory exists: {os.path.exists(app.config['UPLOAD_FOLDER'])}")
@@ -413,74 +470,27 @@ def add_board():
                 material_type = material_type_other.strip()
             
             # Handle file uploads
-            front_image = request.files.get("image_front")
-            back_image = request.files.get("image_back")
+            front_image_file = request.files.get("front_view") or request.files.get("image_front")
+            back_image_file = request.files.get("back_view") or request.files.get("image_back")
             
             front_filename = None
             back_filename = None
             
-            if front_image and front_image.filename and front_image.filename.strip():
-                try:
-                    print(f"🖼️ Processing front image: {front_image.filename}")
-                    print(f"📁 Upload folder: {app.config['UPLOAD_FOLDER']}")
-                    print(f"📁 Upload folder exists: {os.path.exists(app.config['UPLOAD_FOLDER'])}")
-                    print(f"📝 Upload folder writable: {os.access(app.config['UPLOAD_FOLDER'], os.W_OK)}")
-                    print(f"📊 Image content type: {front_image.content_type}")
-                    print(f"📏 Image content length: {front_image.content_length}")
-                    
-                    # Ensure upload directory exists
-                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                    
-                    front_filename = generate_unique_filename(front_image.filename, "front")
-                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], front_filename)
-                    
-                    print(f"💾 Saving to: {upload_path}")
-                    print(f"📂 Directory contents before save: {os.listdir(app.config['UPLOAD_FOLDER'])}")
-                    
-                    # Save the file
-                    front_image.save(upload_path)
-                    
-                    print(f"📂 Directory contents after save: {os.listdir(app.config['UPLOAD_FOLDER'])}")
-                    print(f"📄 File exists after save: {os.path.exists(upload_path)}")
-                    
-                    if os.path.exists(upload_path):
-                        file_size = os.path.getsize(upload_path)
-                        file_perms = oct(os.stat(upload_path).st_mode)[-3:]
-                        print(f"📊 File size: {file_size} bytes")
-                        print(f"🔐 File permissions: {file_perms}")
-                        print(f"✅ Front image saved successfully: {upload_path}")
-                    else:
-                        print(f"❌ File does not exist after save attempt")
-                        front_filename = None
-                    
-                except Exception as e:
-                    print(f"❌ Error saving front image: {e}")
-                    print(f"🔍 Exception type: {type(e)}")
-                    import traceback
-                    print(f"📍 Full traceback: {traceback.format_exc()}")
-                    front_filename = None
+            if front_image_file and front_image_file.filename and front_image_file.filename.strip():
+                print(f"🖼️ Processing front image: {front_image_file.filename}")
+                front_filename = upload_image(front_image_file, "front")
+                if front_filename:
+                    print(f"✅ Front image uploaded successfully")
+                else:
+                    print(f"❌ Front image upload failed")
             
-            if back_image and back_image.filename and back_image.filename.strip():
-                try:
-                    print(f"🖼️ Processing back image: {back_image.filename}")
-                    back_filename = generate_unique_filename(back_image.filename, "back")
-                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], back_filename)
-                    
-                    print(f"💾 Saving to: {upload_path}")
-                    back_image.save(upload_path)
-                    print(f"✅ Back image saved successfully: {upload_path}")
-                    print(f"📄 File exists after save: {os.path.exists(upload_path)}")
-                    
-                    if os.path.exists(upload_path):
-                        file_size = os.path.getsize(upload_path)
-                        print(f"📊 File size: {file_size} bytes")
-                    
-                except Exception as e:
-                    print(f"❌ Error saving back image: {e}")
-                    print(f"🔍 Exception type: {type(e)}")
-                    import traceback
-                    print(f"📍 Full traceback: {traceback.format_exc()}")
-                    back_filename = None
+            if back_image_file and back_image_file.filename and back_image_file.filename.strip():
+                print(f"�️ Processing back image: {back_image_file.filename}")
+                back_filename = upload_image(back_image_file, "back")
+                if back_filename:
+                    print(f"✅ Back image uploaded successfully")
+                else:
+                    print(f"❌ Back image upload failed")
             
             # Insert into database
             print(f"💾 Inserting board into database...")
@@ -545,8 +555,8 @@ def edit_board(board_id):
                 material_type = material_type_other.strip()
             
             # Handle file uploads
-            front_image = request.files.get("image_front")
-            back_image = request.files.get("image_back")
+            front_image = request.files.get("front_view") or request.files.get("image_front") 
+            back_image = request.files.get("back_view") or request.files.get("image_back")
             
             # Get current filenames
             current_board = execute_query("SELECT image_front, image_back FROM boards WHERE id = ?", [board_id], fetch=True)
@@ -555,36 +565,22 @@ def edit_board(board_id):
             
             # Update filenames if new files uploaded
             if front_image and front_image.filename and front_image.filename.strip():
-                try:
-                    front_filename = generate_unique_filename(front_image.filename, "front")
-                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], front_filename)
-                    front_image.save(upload_path)
-                    print(f"Front image updated: {upload_path}")
-                except Exception as e:
-                    print(f"Error updating front image: {e}")
+                print(f"🖼️ Processing front image for edit: {front_image.filename}")
+                new_front_filename = upload_image(front_image, "front")
+                if new_front_filename:
+                    front_filename = new_front_filename
+                    print(f"✅ Front image updated successfully")
+                else:
+                    print(f"❌ Front image update failed")
             
             if back_image and back_image.filename and back_image.filename.strip():
-                try:
-                    print(f"🖼️ Processing back image for edit: {back_image.filename}")
-                    back_filename = generate_unique_filename(back_image.filename, "back")
-                    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], back_filename)
-                    
-                    print(f"💾 Saving to: {upload_path}")
-                    back_image.save(upload_path)
-                    print(f"✅ Back image updated successfully: {upload_path}")
-                    print(f"📄 File exists after save: {os.path.exists(upload_path)}")
-                    
-                    if os.path.exists(upload_path):
-                        file_size = os.path.getsize(upload_path)
-                        print(f"📊 File size: {file_size} bytes")
-                    
-                except Exception as e:
-                    print(f"❌ Error updating back image: {e}")
-                    print(f"🔍 Exception type: {type(e)}")
-                    import traceback
-                    print(f"📍 Full traceback: {traceback.format_exc()}")
-                except Exception as e:
-                    print(f"Error updating back image: {e}")
+                print(f"🖼️ Processing back image for edit: {back_image.filename}")
+                new_back_filename = upload_image(back_image, "back")
+                if new_back_filename:
+                    back_filename = new_back_filename
+                    print(f"✅ Back image updated successfully")
+                else:
+                    print(f"❌ Back image update failed")
             
             # Update database
             execute_query("""

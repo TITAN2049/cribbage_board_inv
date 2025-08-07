@@ -54,15 +54,27 @@
              data-gifted-from="{{ board.gifted_from or '' }}">
           {% if board.image_front %}
             <div class="h-48 overflow-hidden rounded-t">
-              <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
-                   alt="Board {{ board.roman_number }}" class="w-full h-full object-cover"
-                   onerror="this.parentElement.innerHTML='<div class=\'h-full bg-red-50 flex flex-col items-center justify-center text-red-600\'><i class=\'fas fa-exclamation-triangle text-2xl mb-2\'></i><span class=\'text-sm\'>Image Missing</span></div>'">
+              {% if board.image_front.startswith('http') %}
+                <img src="{{ board.image_front }}" 
+                     alt="Board {{ board.roman_number }}" class="w-full h-full object-cover"
+                     onerror="this.parentElement.innerHTML='<div class=\'h-full bg-red-50 flex flex-col items-center justify-center text-red-600\'><i class=\'fas fa-exclamation-triangle text-2xl mb-2\'></i><span class=\'text-sm\'>Image Missing</span></div>'">
+              {% else %}
+                <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
+                     alt="Board {{ board.roman_number }}" class="w-full h-full object-cover"
+                     onerror="this.parentElement.innerHTML='<div class=\'h-full bg-red-50 flex flex-col items-center justify-center text-red-600\'><i class=\'fas fa-exclamation-triangle text-2xl mb-2\'></i><span class=\'text-sm\'>Image Missing</span></div>'">
+              {% endif %}
             </div>
           {% elif board.image_back %}
             <div class="h-48 overflow-hidden rounded-t">
-              <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
-                   alt="Board {{ board.roman_number }}" class="w-full h-full object-cover"
-                   onerror="this.parentElement.innerHTML='<div class=\'h-full bg-red-50 flex flex-col items-center justify-center text-red-600\'><i class=\'fas fa-exclamation-triangle text-2xl mb-2\'></i><span class=\'text-sm\'>Image Missing</span></div>'">
+              {% if board.image_back.startswith('http') %}
+                <img src="{{ board.image_back }}" 
+                     alt="Board {{ board.roman_number }}" class="w-full h-full object-cover"
+                     onerror="this.parentElement.innerHTML='<div class=\'h-full bg-red-50 flex flex-col items-center justify-center text-red-600\'><i class=\'fas fa-exclamation-triangle text-2xl mb-2\'></i><span class=\'text-sm\'>Image Missing</span></div>'">
+              {% else %}
+                <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
+                     alt="Board {{ board.roman_number }}" class="w-full h-full object-cover"
+                     onerror="this.parentElement.innerHTML='<div class=\'h-full bg-red-50 flex flex-col items-center justify-center text-red-600\'><i class=\'fas fa-exclamation-triangle text-2xl mb-2\'></i><span class=\'text-sm\'>Image Missing</span></div>'">
+              {% endif %}
             </div>
           {% else %}
             <div class="h-48 bg-gray-50 rounded-t flex items-center justify-center">
@@ -127,13 +139,25 @@
                   data-gifted-from="{{ board.gifted_from or '' }}">
                 <td class="p-3">
                   {% if board.image_front %}
-                    <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
-                         alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded"
-                         onerror="this.outerHTML='<div class=\'w-12 h-12 bg-red-50 rounded flex items-center justify-center\'><i class=\'fas fa-exclamation-triangle text-red-500 text-xs\'></i></div>'">
+                    {% if board.image_front.startswith('http') %}
+                      <img src="{{ board.image_front }}" 
+                           alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded"
+                           onerror="this.outerHTML='<div class=\'w-12 h-12 bg-red-50 rounded flex items-center justify-center\'><i class=\'fas fa-exclamation-triangle text-red-500 text-xs\'></i></div>'">
+                    {% else %}
+                      <img src="{{ url_for('uploaded_file', filename=board.image_front) }}" 
+                           alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded"
+                           onerror="this.outerHTML='<div class=\'w-12 h-12 bg-red-50 rounded flex items-center justify-center\'><i class=\'fas fa-exclamation-triangle text-red-500 text-xs\'></i></div>'">
+                    {% endif %}
                   {% elif board.image_back %}
-                    <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
-                         alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded"
-                         onerror="this.outerHTML='<div class=\'w-12 h-12 bg-red-50 rounded flex items-center justify-center\'><i class=\'fas fa-exclamation-triangle text-red-500 text-xs\'></i></div>'">
+                    {% if board.image_back.startswith('http') %}
+                      <img src="{{ board.image_back }}" 
+                           alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded"
+                           onerror="this.outerHTML='<div class=\'w-12 h-12 bg-red-50 rounded flex items-center justify-center\'><i class=\'fas fa-exclamation-triangle text-red-500 text-xs\'></i></div>'">
+                    {% else %}
+                      <img src="{{ url_for('uploaded_file', filename=board.image_back) }}" 
+                           alt="Board {{ board.roman_number }}" class="w-12 h-12 object-cover rounded"
+                           onerror="this.outerHTML='<div class=\'w-12 h-12 bg-red-50 rounded flex items-center justify-center\'><i class=\'fas fa-exclamation-triangle text-red-500 text-xs\'></i></div>'">
+                    {% endif %}
                   {% else %}
                     <div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
                       <i class="fas fa-chess-board text-gray-400"></i>
