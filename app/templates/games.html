@@ -47,12 +47,28 @@
                 
                 <div class="text-center">
                   <div class="text-sm text-gray-500">Winner</div>
-                  <div class="font-medium text-green-600">{{ game.winner or 'N/A' }}</div>
+                  <div class="font-medium text-green-600">
+                    {% if game.winner_id %}
+                      <a href="{{ url_for('player_detail', player_id=game.winner_id) }}" class="hover:underline">
+                        {{ game.winner or 'N/A' }}
+                      </a>
+                    {% else %}
+                      {{ game.winner or 'N/A' }}
+                    {% endif %}
+                  </div>
                 </div>
                 
                 <div class="text-center">
                   <div class="text-sm text-gray-500">Loser</div>
-                  <div class="font-medium text-red-600">{{ game.loser or 'N/A' }}</div>
+                  <div class="font-medium text-red-600">
+                    {% if game.loser_id %}
+                      <a href="{{ url_for('player_detail', player_id=game.loser_id) }}" class="hover:underline">
+                        {{ game.loser or 'N/A' }}
+                      </a>
+                    {% else %}
+                      {{ game.loser or 'N/A' }}
+                    {% endif %}
+                  </div>
                 </div>
                 
                 <div class="text-center">

@@ -725,11 +725,9 @@ def player_detail(player_id):
             'skunks_received': skunks_received,
             'double_skunks_given': double_skunks_given,
             'double_skunks_received': double_skunks_received,
-            'avg_winning_score': 121.0,
-            'current_streak': 'N/A',
-            'recent_form': 'N/A',
-            'favorite_opponent': None,  # Changed from 'N/A' to None
-            'nemesis': None  # Changed from 'N/A' to None
+            'current_streak': 'N/A',  # Keep for template compatibility but not used
+            'favorite_opponent': None,
+            'nemesis': None
         }
         
         return render_template("player_detail.html", player=player[0], stats=stats, recent_games=games)
