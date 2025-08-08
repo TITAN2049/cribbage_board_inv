@@ -184,8 +184,8 @@
                 </div>
                 <div class="text-gray-500">
                   {{ game.date_played if game.date_played else 'No date' }}
-                  {% if game.board_id %}
-                    • Board {{ game.board_id }}
+                  {% if game.roman_number %}
+                    • Board {{ game.roman_number }}
                   {% endif %}
                 </div>
               </div>

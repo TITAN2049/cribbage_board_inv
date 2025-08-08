@@ -694,8 +694,8 @@ def player_detail(player_id):
         # Get all games involving this player
         games = execute_query("""
             SELECT g.*, 
-                   pw.first_name || ' ' || pw.last_name as winner_name,
-                   pl.first_name || ' ' || pl.last_name as loser_name,
+                   pw.first_name || ' ' || pw.last_name as winner,
+                   pl.first_name || ' ' || pl.last_name as loser,
                    b.roman_number
             FROM games g
             LEFT JOIN players pw ON g.winner_id = pw.id
@@ -730,7 +730,7 @@ def player_detail(player_id):
             'nemesis': None
         }
         
-        return render_template("player_detail.html", player=player[0], stats=stats, recent_games=games)
+        return render_template("player_detail.html", player=player[0], stats=stats, games=games)
     except Exception as e:
         flash(f"Database error: {e}", "error")
         return redirect(url_for("players"))
