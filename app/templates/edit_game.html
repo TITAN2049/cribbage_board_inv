@@ -61,6 +61,20 @@
     </div>
     
     <div class="form-group mb-4">
+      <label class="form-label">Game Type</label>
+      <div class="flex gap-4">
+        <label class="flex items-center">
+          <input type="checkbox" name="is_skunk" class="mr-2" {{ 'checked' if game.is_skunk else '' }}>
+          Skunk
+        </label>
+        <label class="flex items-center">
+          <input type="checkbox" name="is_double_skunk" class="mr-2" {{ 'checked' if game.is_double_skunk else '' }}>
+          Double Skunk
+        </label>
+      </div>
+    </div>
+    
+    <div class="form-group mb-4">
       <label class="form-label">Board Used</label>
       <select name="board_id" class="form-input">
         <option value="">Select board (optional)</option>
@@ -70,11 +84,6 @@
           </option>
         {% endfor %}
       </select>
-    </div>
-    
-    <div class="form-group mb-6">
-      <label class="form-label">Notes</label>
-      <textarea name="notes" class="form-input" rows="3" placeholder="Any notes about this game">{{ game.notes or '' }}</textarea>
     </div>
 
     <div class="flex gap-3 justify-end">

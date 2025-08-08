@@ -891,13 +891,86 @@ def add_game():
     
     return redirect(url_for("games"))
 
+@app.route("/game/<int:game_id>/edit")
+def edit_game(game_id):
+    try:
+        game = execute_query("SELECT * FROM games WHERE id = ?", [game_id], fetch=True)
+        if not game:
+            flash("Game not found!", "error")
+            return redirect(url_for("games"))
+        
+        game = game[0]
+        players = execute_query("SELECT * FROM players ORDER BY first_name, last_name", fetch=True)
+        boards = execute_query("SELECT * FROM boards ORDER BY roman_number", fetch=True)
+        
+        return render_template("edit_game.html", game=game, players=players, boards=boards)
+        
+    except Exception as e:
+        flash(f"Error loading game: {e}", "error")
+        return redirect(url_for("games"))
+
+@app.route("/game/<int:game_id>/edit", methods=["POST"])
+def update_game(game_id):
+    try:
+        board_id = request.form["board_id"]
+        winner_id = request.form["winner_id"]
+        loser_id = request.form["loser_id"]
+        date_played = request.form["date_played"]
+        winner_score = request.form.get("winner_score", 121)
+        loser_score = request.form.get("loser_score", 0)
+        notes = request.form.get("notes", "")
+        is_skunk = 'is_skunk' in request.form
+        is_double_skunk = 'is_double_skunk' in request.form
+        
+        if winner_id == loser_id:
+            flash("Winner and loser cannot be the same player!", "error")
+            return redirect(url_for("edit_game", game_id=game_id))
+        
+        execute_query("""
+            UPDATE games 
+            SET board_id = ?, winner_id = ?, loser_id = ?, date_played = ?, 
+                winner_score = ?, loser_score = ?, is_skunk = ?, is_double_skunk = ?
+            WHERE id = ?
+        """, [board_id, winner_id, loser_id, date_played, winner_score, loser_score, is_skunk, is_double_skunk, game_id])
+        
+        flash("Game updated successfully!", "success")
+        
+    except Exception as e:
+        flash(f"Error updating game: {e}", "error")
+    
+    return redirect(url_for("games"))
+
+@app.route("/game/<int:game_id>/delete", methods=["POST"])
+def delete_game(game_id):
+    try:
+        execute_query("DELETE FROM games WHERE id = ?", [game_id])
+        flash("Game deleted successfully!", "success")
+        
+    except Exception as e:
+        flash(f"Error deleting game: {e}", "error")
+    
+    return redirect(url_for("games"))
+
 @app.route("/stats")
 def stats():
     try:
         # Get basic data for the template
         players = execute_query("SELECT * FROM players ORDER BY first_name, last_name", fetch=True)
         boards = execute_query("SELECT * FROM boards ORDER BY roman_number", fetch=True)
-        games = execute_query("SELECT * FROM games ORDER BY date_played DESC", fetch=True)
+        
+        # Get games with player names for display
+        games_query = """
+            SELECT g.*, 
+                   w.first_name || ' ' || w.last_name as winner,
+                   l.first_name || ' ' || l.last_name as loser,
+                   b.roman_number
+            FROM games g
+            JOIN players w ON g.winner_id = w.id
+            JOIN players l ON g.loser_id = l.id
+            LEFT JOIN boards b ON g.board_id = b.id
+            ORDER BY g.date_played DESC, g.id DESC
+        """
+        games = execute_query(games_query, fetch=True)
         
         # Simple leaderboard - basic win/loss stats
         leaderboard = []
@@ -921,9 +994,6 @@ def stats():
                     'skunks_received': len([g for g in games if g['loser_id'] == player['id'] and (g['is_skunk'] or g['is_double_skunk'])]),
                     'double_skunks_given': len([g for g in games if g['winner_id'] == player['id'] and g['is_double_skunk']]),
                     'double_skunks_received': len([g for g in games if g['loser_id'] == player['id'] and g['is_double_skunk']]),
-                    'avg_winning_score': 121.0,  # Default for now
-                    'current_streak': 'N/A',
-                    'recent_form': 'N/A'
                 }
                 leaderboard.append(player_stats)
         
@@ -934,8 +1004,7 @@ def stats():
                              players=players, 
                              boards=boards, 
                              games=games,
-                             leaderboard=leaderboard,
-                             player_nemesis={})
+                             leaderboard=leaderboard)
         
     except Exception as e:
         flash(f"Database error: {e}", "error")
@@ -943,8 +1012,7 @@ def stats():
                              players=[], 
                              boards=[], 
                              games=[],
-                             leaderboard=[],
-                             player_nemesis={})
+                             leaderboard=[])
 
 if __name__ == "__main__":
     # Initialize database tables on startup

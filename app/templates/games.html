@@ -58,9 +58,9 @@
                 <div class="text-center">
                   <div class="text-sm text-gray-500">Result</div>
                   <div class="font-medium">
-                    {% if game.winner_score == 121 and game.loser_score == 0 %}
+                    {% if game.is_double_skunk %}
                       Double Skunk
-                    {% elif game.winner_score == 121 and game.loser_score < 91 %}
+                    {% elif game.is_skunk %}
                       Skunk
                     {% else %}
                       Normal Win
@@ -85,12 +85,6 @@
                 </button>
               </div>
             </div>
-            
-            {% if game.notes %}
-              <div class="mt-3 pt-3 border-t">
-                <div class="text-sm text-gray-600">{{ game.notes }}</div>
-              </div>
-            {% endif %}
           </div>
         </div>
       {% endfor %}
