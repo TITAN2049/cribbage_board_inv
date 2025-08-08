@@ -912,7 +912,7 @@ def stats():
                     'id': player['id'],
                     'first_name': player['first_name'],
                     'last_name': player['last_name'],
-                    'photo': player.get('photo'),
+                    'photo': player['photo'] if 'photo' in player.keys() else None,
                     'wins': wins,
                     'losses': losses,
                     'total_games': total_games,
